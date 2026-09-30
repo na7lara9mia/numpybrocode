@@ -1,0 +1,59 @@
+trigger:
+  branches:
+    include: [rec]
+  paths:
+    include:
+    - fabric/**
+
+parameters:
+- name: items_in_scope
+  displayName: Enter Fabric items to be deployed
+  type: string
+  default: '["Notebook","DataPipeline","Lakehouse","SemanticModel","Report","VariableLibrary"]'
+
+variables:
+- name: target_env
+  value: "[REC] POC_Integration"
+- group: Secrets for Azure Pipeline
+
+stages:
+- stage: DeployToFabric
+  displayName: "Deploy to Fabric Workspace"
+
+  jobs:
+  - job: DeployFabric
+    displayName: "Deploy Resources"
+
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    steps:
+    - checkout: self
+
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '3.12'
+        addToPath: true
+      displayName: "Set up Python Environment"
+
+    - script: |
+        python -m pip install --upgrade pip
+        pip install fabric-cicd
+        pip show fabric-cicd
+
+      displayName: "Install Fabric CICD Library"
+
+  
+
+    - task: PythonScript@0
+      inputs:
+        scriptSource: 'filePath'
+        scriptPath: 'scripts/deploy-to-fabric.py'
+        arguments: '--aztenantid $(Tenant) --azclientid $(AppID) --azspsecret $(Secret) --items_in_scope ${{ parameters.items_in_scope }} --target_env "$(target_env)"'
+      displayName: 'Run deployment using fabric-cicd'
+    
+    
+    - script: |
+        cat /home/vsts/work/1/s/fabric_cicd.error.log
+      condition: always()
+      displayName: "Display fabric-cicd error log"
