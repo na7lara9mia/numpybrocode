@@ -1,0 +1,12 @@
+﻿Réf.;Objet concerné;Règle (description fonctionnelle);Implémentation (description technique)
+RG01;dim_agent.code_sexe;Le sexe est exprimé en H / F : le code M d'Astra devient H.;CASE COD_SEXE WHEN 'M' THEN 'H' WHEN 'F' THEN 'F' ELSE COD_SEXE END
+RG02;dim_agent (dates);Toute date de naissance, d'entrée ou de départ antérieure au 01/01/1900 est considérée comme une erreur de saisie et ramenée au 01/01/1900.;CASE WHEN CAST(x AS DATE) < 1900-01-01 THEN 1900-01-01 ELSE CAST(x AS DATE) END
+RG03;dim_position.libelle_type_depart;Type de départ : P = Provisoire, X = Activité, D = Définitif.;CASE TYP_DEP …
+RG04;dim_categorie_agent.groupe_categorie_agent;"Titulaires (T) et stagiaires (S) = Permanent ; contractuels (C) = Contractuel ; autres = Autre.";CASE WHEN COD_CATAGT IN ('T','S') … WHEN 'C' … ELSE 'Autre'
+RG05;dim_structure.regroupement;"Structure CREPS = CREPS ; code commençant par un chiffre = ARS ; sinon ARL.";CASE WHEN COD_STRUC='CREPS' … WHEN LEFT(COD_STRUC,1) BETWEEN '0' AND '9' … ELSE 'ARL'
+RG06;ft_effectif_agent.statut_remuneration;"Un emploi de classe de rémunération 0 est non rémunéré ; tous les autres sont rémunérés.";CASE WHEN COD_CLASREMUN = 0 THEN 'Non rémunéré' ELSE 'Rémunéré'
+RG07;dim_fonction;Seules les fonctions d'une collectivité de référence sont retenues.;WHERE COD_COLL = '*****' (valeur masquée)
+RG08;Toutes les tables datées;Une période sans date de fin est en cours : sa date de fin vaut 31/12/2099.;CAST(COALESCE(DAT_FIN, '2099-12-31') AS date)
+RG09;Extraction Bronze;Seules les lignes modifiées avant la date de référence sont chargées.;WHERE DAT_MAJ > 1900-01-01 AND DAT_MAJ <= as_of_date
+RG10;dim_structure (Gold);Chaque structure hérite des libellés de ses niveaux supérieurs valides sur toute sa période.;"Auto-jointures parent : P.debut <= S.debut AND P.fin >= S.fin ; pivot par numero_niveau"
+RG11;Faits Gold effectif et carrière;Une ligne de fait couvre la période où toutes ses caractéristiques (structure, grade, taux) sont valides simultanément.;Jointure par chevauchement + GREATEST(débuts) / LEAST(fins)

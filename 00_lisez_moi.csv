@@ -1,0 +1,17 @@
+﻿Plateforme de données RH – Transformations entre couches (Medallion Fabric)
+""
+Objet : décrire, table par table et colonne par colonne, les transformations appliquées de la source Astra_RH jusqu'au Warehouse Gold.
+Chaque fichier porte deux descriptions : « Description fonctionnelle » pour les power users métier, « Description technique » pour les développeurs.
+""
+Fichiers
+01_source_vers_bronze.csv : les 17 objets extraits d'Astra_RH, leur filtre et leurs conversions.
+02_bronze_vers_silver.csv : les 13 tables Silver, leurs sources, jointures, clés et règles.
+03_silver_vers_gold.csv : les 14 tables du Warehouse (dont dim_motif_affectation, non construite), leur mode de chargement et leurs dimensions.
+04_mapping_colonnes_silver.csv : chaque colonne Silver, sa colonne Astra d'origine et le type de transformation.
+05_regles_de_gestion.csv : les calculs métier, à valider avec les équipes RH.
+06_points_d_attention.csv : anomalies relevées dans le code et recommandations.
+""
+Conventions
+Bronze = Lakehouse (Files pour le transit, Tables pour les données) · Silver = Lakehouse lh_silver (Tables) · Gold = Warehouse wh_gold.
+Date de fin 31/12/2099 = période toujours en cours. hash_key = empreinte SHA-256 de la clé métier. *_sk = clé de substitution Gold.
+Source : script SQL fourni (extractions Oracle, notebooks Spark SQL, scripts T-SQL), analysé le 26/11/2026.

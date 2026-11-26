@@ -1,0 +1,15 @@
+﻿#;Couche;Gravité;Constat;Impact;Recommandation
+1;Gold;Critique;dim_grade et dim_taux_emploi : NOT EXISTS sur le code seul.;"Seule la première version est chargée ; les jointures temporelles des faits ratent les suivantes.";Tester l'existence sur hash_key.
+2;Gold;Majeur;Dimensions en insertion seule.;Les corrections de libellés dans Astra ne remontent pas.;MERGE / UPDATE sur hash_key.
+3;Gold;Critique;dim_structure et faits insérés sans contrôle d'existence.;Doublons à chaque exécution sauf vidage préalable.;TRUNCATE + INSERT explicite, ou MERGE sur la clé de version.
+4;Gold;Critique;ft_carriere_agent écrit dans ft_carriere_agent_sbx.;La table de production n'est pas alimentée.;Cibler carriere.ft_carriere_agent.
+5;Silver;Majeur;CONCAT Spark renvoie NULL si une partie est nulle.;hash_key nul : la ligne est réinsérée à chaque MERGE.;concat_ws('|', …) ou COALESCE.
+6;Silver;Majeur;Pas de gestion des suppressions.;Les lignes supprimées dans Astra subsistent.;WHEN NOT MATCHED BY SOURCE ou indicateur de suppression.
+7;Bronze;Mineur;Extractions TYPCTR et HANAGT : date de référence écrite en dur (2026-11-26).;Ces deux tables ne suivent pas le paramètre as_of_date des autres.;Remplacer par as_of_date.
+8;Gold;Critique;dim_motif_affectation non construite.;ft_effectif_agent échoue.;Construire la dimension ou retirer la jointure.
+9;Silver;Majeur;ft_handicap_agent : hash_key sans COD_COLL, matricule en INT, date de fin sans 2099-12-31.;Collisions possibles entre collectivités, jointure dim_agent à risque, périodes en cours à fin nulle.;Aligner sur les autres faits : COD_COLL dans la clé, matricule en texte, COALESCE(DAT_FIN, 2099-12-31).
+10;Gold;Majeur;dim_motif_nbi jointe sans date.;Multiplication possible des lignes d'effectif.;Joindre aussi sur la période.
+11;Bronze;Critique;OG.IDENT extrait IDENT_PWD.;Donnée d'authentification copiée dans le Lakehouse.;Retirer la colonne.
+12;Silver;Mineur;ident_id casté en INT.;Dépassement au-delà de 2 147 483 647.;BIGINT ou DECIMAL(22,0).
+13;Gold;Mineur;ft_effectif_agent ne filtre pas les intersections vides.;Lignes avec début ≥ fin possibles.;Ajouter WHERE date_debut_validite < date_fin_validite.
+14;Gold / Power BI;Majeur;Données de santé (handicap) sans sécurité définie.;Exposition de données RGPD art. 9.;Sécurité objet / ligne dans le Warehouse et le modèle sémantique.

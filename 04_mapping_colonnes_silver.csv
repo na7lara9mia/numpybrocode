@@ -1,0 +1,420 @@
+﻿Table Silver;Colonne Silver;Table(s) Bronze;Colonne(s) Astra;Type de transformation;Description fonctionnelle;Description technique
+lh_silver.dimensions.dim_agent;hash_key;AGTNAT;COD_COLL, IDF_AGENT;Clé technique (hash);Identifiant technique unique de l'agent (collectivité + matricule), stable d'un chargement à l'autre.;"SHA2(CONCAT(COD_COLL, '|', IDF_AGENT), 256) casté en VARCHAR(64) ; clé de rapprochement du MERGE."
+lh_silver.dimensions.dim_agent;code_organisme;AGTNAT;COD_COLL;Renommage;Code organisme (repris tel quel d'Astra).;Copie de n.COD_COLL renommée en code_organisme.
+lh_silver.dimensions.dim_agent;matricule_agent;AGTNAT;IDF_AGENT;Renommage;Matricule agent (repris tel quel d'Astra).;Copie de n.IDF_AGENT renommée en matricule_agent.
+lh_silver.dimensions.dim_agent;ident_id;AGTNAT;IDENT_ID;Conversion de type;Identifiant de la personne dans Astra (lien vers l'identité).;CAST(IDENT_ID AS INT) — risque de dépassement : source en NUMBER(22,0).
+lh_silver.dimensions.dim_agent;date_naissance;IDENT;DAT_NAISSANCE;Règle de gestion;"Date de naissance de l'agent ; les dates saisies avant 1900 (erreurs de saisie) sont ramenées au 01/01/1900.";"CASE WHEN CAST(IDENT.DAT_NAISSANCE AS DATE) < 1900-01-01 THEN 1900-01-01 ELSE valeur ; source OG.IDENT via LEFT JOIN sur IDENT_ID."
+lh_silver.dimensions.dim_agent;code_sexe;IDENT;COD_SEXE;Règle de gestion;Sexe de l'agent au format H / F (le M d'Astra devient H).;"CASE COD_SEXE WHEN 'M' THEN 'H' WHEN 'F' THEN 'F' ELSE valeur source ; colonne masquée (***) dans le fichier fourni."
+lh_silver.dimensions.dim_agent;indicateur_handicap;AGTNAT;IND_HANDIC;Renommage;Indicateur handicap (repris tel quel d'Astra).;Copie de n.IND_HANDIC renommée en indicateur_handicap.
+lh_silver.dimensions.dim_agent;date_entree_collectivite;AGTNAT;DAT_ENTCOLL;Règle de gestion;Date d'entrée dans la collectivité, bornée au 01/01/1900.;CASE WHEN CAST(DAT_ENTCOLL AS DATE) < 1900-01-01 THEN 1900-01-01 ELSE valeur.
+lh_silver.dimensions.dim_agent;date_depart_dossier_agent;AGTNAT;DAT_DEPART;Règle de gestion;Date de départ de l'agent, bornée au 01/01/1900.;CASE WHEN CAST(DAT_DEPART AS DATE) < 1900-01-01 THEN 1900-01-01 ELSE valeur.
+lh_silver.dimensions.dim_position;hash_key;POSAGT;COD_POSAGT;Clé technique (hash);Identifiant technique unique de la ligne (une version = une clé), utilisé pour les mises à jour.;CAST(SHA2(CONCAT('POSITION|', p.COD_POSAGT), 256) AS varchar(64))
+lh_silver.dimensions.dim_position;code_position_agent;POSAGT;COD_POSAGT;Renommage;Code position agent (repris tel quel d'Astra).;Copie de p.COD_POSAGT renommée en code_position_agent.
+lh_silver.dimensions.dim_position;libelle_position_agent;POSAGT;LIB_POSAGT;Renommage;Libellé position agent (repris tel quel d'Astra).;Copie de p.LIB_POSAGT renommée en libelle_position_agent.
+lh_silver.dimensions.dim_position;code_position_statutaire;POSAGT;COD_POSSTA;Renommage;Code position statutaire (repris tel quel d'Astra).;Copie de p.COD_POSSTA renommée en code_position_statutaire.
+lh_silver.dimensions.dim_position;libelle_position_statutaire;V_POSSTA;LIB_POSSTA;Renommage;Libellé position statutaire (repris tel quel d'Astra).;Copie de s.LIB_POSSTA renommée en libelle_position_statutaire.
+lh_silver.dimensions.dim_position;type_depart;POSAGT;TYP_DEP;Renommage;Type départ (repris tel quel d'Astra).;Copie de p.TYP_DEP renommée en type_depart.
+lh_silver.dimensions.dim_position;libelle_type_depart;POSAGT;TYP_DEP;Règle de gestion;Libellé du type de départ : Provisoire, Activité ou Définitif.;CASE TYP_DEP : P → Provisoire, X → Activité, D → Définitif, sinon NULL.
+lh_silver.dimensions.dim_position;date_effet;POSAGT;DAT_EFFET;Renommage;Date effet (repris tel quel d'Astra).;Copie de p.DAT_EFFET renommée en date_effet.
+lh_silver.dimensions.dim_position;date_fin_validite;POSAGT;DAT_FIN_VALIDITE;Date de fin par défaut;"Date de fin de validité de la position ; 31/12/2099 si toujours valide.";CAST(COALESCE(DAT_FIN_VALIDITE, '2099-12-31') AS date).
+lh_silver.dimensions.dim_taux_emploi;hash_key;TAUEMP;COD_TAU, DAT_DEBUT;Clé technique (hash);Identifiant technique unique de la ligne (une version = une clé), utilisé pour les mises à jour.;CAST(SHA2(CONCAT('WORK_RATE|', t.COD_TAU, '|', CAST(t.DAT_DEBUT AS char(10))), 256) AS varchar(64))
+lh_silver.dimensions.dim_taux_emploi;code_taux;TAUEMP;COD_TAU;Renommage;Code taux (repris tel quel d'Astra).;Copie de t.COD_TAU renommée en code_taux.
+lh_silver.dimensions.dim_taux_emploi;taux_affecte;TAUEMP;TAU_AFF;Renommage;Taux affecté (repris tel quel d'Astra).;Copie de t.TAU_AFF renommée en taux_affecte.
+lh_silver.dimensions.dim_taux_emploi;taux_reel;TAUEMP;TAU_REEL;Renommage;Taux réel (repris tel quel d'Astra).;Copie de t.TAU_REEL renommée en taux_reel.
+lh_silver.dimensions.dim_taux_emploi;numerateur_reel;TAUEMP;VAL_NUMER;Renommage;Numérateur réel (repris tel quel d'Astra).;Copie de t.VAL_NUMER renommée en numerateur_reel.
+lh_silver.dimensions.dim_taux_emploi;denominateur_reel;TAUEMP;VAL_DENOMI;Renommage;Dénominateur réel (repris tel quel d'Astra).;Copie de t.VAL_DENOMI renommée en denominateur_reel.
+lh_silver.dimensions.dim_taux_emploi;libelle_taux;TAUEMP;TAU_LIB;Renommage;Libellé taux (repris tel quel d'Astra).;Copie de t.TAU_LIB renommée en libelle_taux.
+lh_silver.dimensions.dim_taux_emploi;date_debut_validite;TAUEMP;DAT_DEBUT;Conversion de type;Début de la période de validité de la ligne.;CAST(t.DAT_DEBUT AS date)
+lh_silver.dimensions.dim_taux_emploi;date_fin_validite;TAUEMP;DAT_FIN;Date de fin par défaut;"Fin de la période de validité ; 31/12/2099 quand la période est toujours en cours.";CAST(COALESCE(t.DAT_FIN, '2099-12-31') AS date)
+lh_silver.dimensions.dim_categorie_agent;hash_key;CATAGT;COD_CATAGT;Clé technique (hash);Identifiant technique unique de la ligne (une version = une clé), utilisé pour les mises à jour.;CAST(SHA2(CONCAT('AGENT_CATEGORY|', c.COD_CATAGT), 256) AS varchar(64))
+lh_silver.dimensions.dim_categorie_agent;code_categorie_agent;CATAGT;COD_CATAGT;Renommage;Code catégorie agent (repris tel quel d'Astra).;Copie de c.COD_CATAGT renommée en code_categorie_agent.
+lh_silver.dimensions.dim_categorie_agent;libelle_categorie_agent;CATAGT;LIB_CATAGT;Renommage;Libellé catégorie agent (repris tel quel d'Astra).;Copie de c.LIB_CATAGT renommée en libelle_categorie_agent.
+lh_silver.dimensions.dim_categorie_agent;groupe_categorie_agent;CATAGT;COD_CATAGT;Règle de gestion;Regroupement des catégories : Permanent (titulaires et stagiaires), Contractuel, Autre.;CASE WHEN COD_CATAGT IN ('T','S') THEN Permanent WHEN 'C' THEN Contractuel ELSE Autre.
+lh_silver.dimensions.dim_categorie_agent;date_fin_validite;CATAGT;DAT_FIN_VALIDITE;Renommage;Date fin validité (repris tel quel d'Astra).;Copie de c.DAT_FIN_VALIDITE renommée en date_fin_validite.
+lh_silver.dimensions.dim_grade;hash_key;GRADE;COD_GRADE, DAT_DEBUT;Clé technique (hash);Identifiant technique unique de la ligne (une version = une clé), utilisé pour les mises à jour.;CAST(SHA2(CONCAT('GRADE|', g.COD_GRADE, '|', CAST(g.DAT_DEBUT AS char(10))), 256) AS varchar(64))
+lh_silver.dimensions.dim_grade;code_grade;GRADE;COD_GRADE;Renommage;Code grade (repris tel quel d'Astra).;Copie de g.COD_GRADE renommée en code_grade.
+lh_silver.dimensions.dim_grade;libelle_grade;GRADE;LIB_GRADE;Renommage;Libellé grade (repris tel quel d'Astra).;Copie de g.LIB_GRADE renommée en libelle_grade.
+lh_silver.dimensions.dim_grade;code_cadre_emploi;GRADE;COD_CADEMPL;Renommage;Code cadre emploi (repris tel quel d'Astra).;Copie de g.COD_CADEMPL renommée en code_cadre_emploi.
+lh_silver.dimensions.dim_grade;libelle_cadre_emploi;V_CADEMP;LIB_CADEMPL;Renommage;Libellé cadre emploi (repris tel quel d'Astra).;Copie de c.LIB_CADEMPL renommée en libelle_cadre_emploi.
+lh_silver.dimensions.dim_grade;code_filiere;V_CADEMP;COD_FIL;Renommage;Code filiere (repris tel quel d'Astra).;Copie de c.COD_FIL renommée en code_filiere.
+lh_silver.dimensions.dim_grade;code_corps;V_CADEMP;COD_CORPS;Renommage;Code corps (repris tel quel d'Astra).;Copie de c.COD_CORPS renommée en code_corps.
+lh_silver.dimensions.dim_grade;code_categorie_grade;GRADE;COD_CATGRADE;Renommage;Code catégorie grade (repris tel quel d'Astra).;Copie de g.COD_CATGRADE renommée en code_categorie_grade.
+lh_silver.dimensions.dim_grade;date_debut_validite;GRADE;DAT_DEBUT;Conversion de type;Début de la période de validité de la ligne.;CAST(g.DAT_DEBUT AS date)
+lh_silver.dimensions.dim_grade;date_fin_validite;GRADE;DAT_FIN;Date de fin par défaut;"Fin de la période de validité ; 31/12/2099 quand la période est toujours en cours.";CAST(COALESCE(g.DAT_FIN, '2099-12-31') AS date)
+lh_silver.dimensions.dim_fonction;hash_key;V_FONCTI;COD_FONCTION;Clé technique (hash);Identifiant technique unique de la ligne (une version = une clé), utilisé pour les mises à jour.;CAST(SHA2(CONCAT('FUNCTION|', f.COD_FONCTION), 256) AS varchar(64))
+lh_silver.dimensions.dim_fonction;code_fonction;V_FONCTI;COD_FONCTION;Renommage;Code fonction (repris tel quel d'Astra).;Copie de f.COD_FONCTION renommée en code_fonction.
+lh_silver.dimensions.dim_fonction;libelle_fonction;V_FONCTI;LIB_FONCTION;Renommage;Libellé fonction (repris tel quel d'Astra).;Copie de f.LIB_FONCTION renommée en libelle_fonction.
+lh_silver.dimensions.dim_fonction;libelle_court_fonction;V_FONCTI;LIC_FONCTION;Renommage;Libellé court fonction (repris tel quel d'Astra).;Copie de f.LIC_FONCTION renommée en libelle_court_fonction.
+lh_silver.dimensions.dim_fonction;indicateur_encadrement;V_FONCTI;IND_ENCADREMENT;Renommage;Indicateur encadrement (repris tel quel d'Astra).;Copie de f.IND_ENCADREMENT renommée en indicateur_encadrement.
+lh_silver.dimensions.dim_fonction;indicateur_fonction_actuelle;V_FONCTI;IND_FONC_ACTUELLE;Renommage;Indicateur fonction actuelle (repris tel quel d'Astra).;Copie de f.IND_FONC_ACTUELLE renommée en indicateur_fonction_actuelle.
+lh_silver.dimensions.dim_fonction;date_fin_validite;V_FONCTI;DAT_FIN_VALIDITE;Renommage;Date fin validité (repris tel quel d'Astra).;Copie de f.DAT_FIN_VALIDITE renommée en date_fin_validite.
+lh_silver.dimensions.dim_structure;hash_key;STRUC_HIS;COD_COLL, COD_STRUC, DAT_DEBUT;Clé technique (hash);Identifiant technique unique de la ligne (une version = une clé), utilisé pour les mises à jour.;CAST(SHA2(CONCAT(sh.COD_COLL, '|', sh.COD_STRUC, '|', CAST(sh.DAT_DEBUT AS char(10))), 256) AS varchar(64))
+lh_silver.dimensions.dim_structure;code_organisme;STRUC_HIS;COD_COLL;Renommage;Code organisme (repris tel quel d'Astra).;Copie de sh.COD_COLL renommée en code_organisme.
+lh_silver.dimensions.dim_structure;code_structure;STRUC_HIS;COD_STRUC;Renommage;Code structure (repris tel quel d'Astra).;Copie de sh.COD_STRUC renommée en code_structure.
+lh_silver.dimensions.dim_structure;libelle_structure;STRUC_HIS;LIB_STRUC;Renommage;Libellé structure (repris tel quel d'Astra).;Copie de sh.LIB_STRUC renommée en libelle_structure.
+lh_silver.dimensions.dim_structure;libelle_court_structure;STRUC_HIS;LIC_STRUC;Renommage;Libellé court structure (repris tel quel d'Astra).;Copie de sh.LIC_STRUC renommée en libelle_court_structure.
+lh_silver.dimensions.dim_structure;sigle_structure;STRUC_HIS;LIB_SIGLE;Renommage;Sigle structure (repris tel quel d'Astra).;Copie de sh.LIB_SIGLE renommée en sigle_structure.
+lh_silver.dimensions.dim_structure;numero_niveau;STRUC_HIS;NUM_NIV;Renommage;Numéro niveau (repris tel quel d'Astra).;Copie de sh.NUM_NIV renommée en numero_niveau.
+lh_silver.dimensions.dim_structure;libelle_niveau;V_STRUCNIV;LIB_NIV;Renommage;Libellé niveau (repris tel quel d'Astra).;Copie de sn.LIB_NIV renommée en libelle_niveau.
+lh_silver.dimensions.dim_structure;regroupement;STRUC_HIS;COD_STRUC;Règle de gestion;Regroupement de l'organisme : CREPS, ARS (structures dont le code commence par un chiffre) ou ARL.;CASE WHEN COD_STRUC = 'CREPS' THEN CREPS WHEN LEFT(COD_STRUC,1) BETWEEN '0' AND '9' THEN ARS ELSE ARL.
+lh_silver.dimensions.dim_structure;code_structure_parente_hierarchique;STRUC_HIS;STRUC_PERE_HIER;Renommage;Code structure parente hiérarchique (repris tel quel d'Astra).;Copie de sh.STRUC_PERE_HIER renommée en code_structure_parente_hierarchique.
+lh_silver.dimensions.dim_structure;code_structure_parente_fonctionnelle;STRUC_HIS;STRUC_PERE_FON;Renommage;Code structure parente fonctionnelle (repris tel quel d'Astra).;Copie de sh.STRUC_PERE_FON renommée en code_structure_parente_fonctionnelle.
+lh_silver.dimensions.dim_structure;code_structure_parente_geographique;STRUC_HIS;STRUC_PERE_GEO;Renommage;Code structure parente géographique (repris tel quel d'Astra).;Copie de sh.STRUC_PERE_GEO renommée en code_structure_parente_geographique.
+lh_silver.dimensions.dim_structure;date_debut_validite;STRUC_HIS;DAT_DEBUT;Conversion de type;Début de la période de validité de la ligne.;CAST(sh.DAT_DEBUT AS date)
+lh_silver.dimensions.dim_structure;date_fin_validite;STRUC_HIS;DAT_FIN;Date de fin par défaut;"Fin de la période de validité ; 31/12/2099 quand la période est toujours en cours.";CAST(COALESCE(sh.DAT_FIN, '2099-12-31') AS date)
+lh_silver.dimensions.dim_type_contrat;hash_key;TYPCTR;COD_TYPCTR;Clé technique (hash);Identifiant technique unique de la ligne (une version = une clé), utilisé pour les mises à jour.;CAST(SHA2(CONCAT('CONTRACT_TYPE|', t.COD_TYPCTR), 256) AS varchar(64))
+lh_silver.dimensions.dim_type_contrat;code_type_contrat;TYPCTR;COD_TYPCTR;Renommage;Code type contrat (repris tel quel d'Astra).;Copie de t.COD_TYPCTR renommée en code_type_contrat.
+lh_silver.dimensions.dim_type_contrat;libelle_type_contrat;TYPCTR;LIB_TYPCTR;Renommage;Libellé type contrat (repris tel quel d'Astra).;Copie de t.LIB_TYPCTR renommée en libelle_type_contrat.
+lh_silver.dimensions.dim_motif_nbi;hash_key;V_MOTIFNBI;MOTIFNBI_ID;Clé technique (hash);Identifiant technique unique de la ligne (une version = une clé), utilisé pour les mises à jour.;CAST(SHA2(CONCAT('ID_MOTIF_NBI|', t.MOTIFNBI_ID), 256) AS varchar(64))
+lh_silver.dimensions.dim_motif_nbi;id_motif_nbi;V_MOTIFNBI;MOTIFNBI_ID;Conversion de type;ID motif NBI.;CAST(t.MOTIFNBI_ID AS INT)
+lh_silver.dimensions.dim_motif_nbi;code_nbi;V_MOTIFNBI;COD_NBI;Renommage;Code NBI (repris tel quel d'Astra).;Copie de t.COD_NBI renommée en code_nbi.
+lh_silver.dimensions.dim_motif_nbi;libelle_motif_nbi;V_MOTIFNBI;LIB_MOTIFNBI;Renommage;Libellé motif NBI (repris tel quel d'Astra).;Copie de t.LIB_MOTIFNBI renommée en libelle_motif_nbi.
+lh_silver.dimensions.dim_motif_nbi;libelle_court_motif_nbi;V_MOTIFNBI;LIC_MOTIFNBI;Renommage;Libellé court motif NBI (repris tel quel d'Astra).;Copie de t.LIC_MOTIFNBI renommée en libelle_court_motif_nbi.
+lh_silver.dimensions.dim_motif_nbi;categorie_fonctionnelle_nbi;V_MOTIFNBI;CAT_FONCNBI;Renommage;Catégorie fonctionnelle NBI (repris tel quel d'Astra).;Copie de t.CAT_FONCNBI renommée en categorie_fonctionnelle_nbi.
+lh_silver.dimensions.dim_motif_nbi;nombre_points_nbi;V_MOTIFNBI;POINT_NBI;Renommage;Nombre points NBI (repris tel quel d'Astra).;Copie de t.POINT_NBI renommée en nombre_points_nbi.
+lh_silver.dimensions.dim_motif_nbi;date_debut_validite;V_MOTIFNBI;DAT_DEBUT;Renommage;Début de la période de validité de la ligne.;t.DAT_DEBUT
+lh_silver.dimensions.dim_motif_nbi;date_fin_validite;V_MOTIFNBI;DAT_FIN;Renommage;Date fin validité (repris tel quel d'Astra).;Copie de t.DAT_FIN renommée en date_fin_validite.
+lh_silver.carriere.ft_carriere_agent;hash_key;AGTGRD;COD_COLL, DAT_DEBUT, IDF_AGENT;Clé technique (hash);Identifiant technique unique de la ligne (une version = une clé), utilisé pour les mises à jour.;CAST(SHA2(CONCAT(g.COD_COLL, '|', g.IDF_AGENT, '|', CAST(g.DAT_DEBUT AS char(10))), 256) AS varchar(64))
+lh_silver.carriere.ft_carriere_agent;code_organisme;AGTGRD;COD_COLL;Renommage;Code organisme (repris tel quel d'Astra).;Copie de g.COD_COLL renommée en code_organisme.
+lh_silver.carriere.ft_carriere_agent;matricule_agent;AGTGRD;IDF_AGENT;Renommage;Matricule agent (repris tel quel d'Astra).;Copie de g.IDF_AGENT renommée en matricule_agent.
+lh_silver.carriere.ft_carriere_agent;identifiant_cle;AGTGRD;IDF_CLE;Renommage;Identifiant clé (repris tel quel d'Astra).;Copie de g.IDF_CLE renommée en identifiant_cle.
+lh_silver.carriere.ft_carriere_agent;code_grade;AGTGRD;COD_GRADE;Renommage;Code grade (repris tel quel d'Astra).;Copie de g.COD_GRADE renommée en code_grade.
+lh_silver.carriere.ft_carriere_agent;date_nomination_grade;AGTGRD;DAT_NOMGRAD;Renommage;Date nomination grade (repris tel quel d'Astra).;Copie de g.DAT_NOMGRAD renommée en date_nomination_grade.
+lh_silver.carriere.ft_carriere_agent;date_effet_grade;AGTGRD;DAT_EFFGRAD;Renommage;Date effet grade (repris tel quel d'Astra).;Copie de g.DAT_EFFGRAD renommée en date_effet_grade.
+lh_silver.carriere.ft_carriere_agent;date_arrete_grade;AGTGRD;DAT_ARRGRAD;Renommage;Date arrêté grade (repris tel quel d'Astra).;Copie de g.DAT_ARRGRAD renommée en date_arrete_grade.
+lh_silver.carriere.ft_carriere_agent;code_echelon;AGTGRD;COD_ECHELON;Renommage;Code échelon (repris tel quel d'Astra).;Copie de g.COD_ECHELON renommée en code_echelon.
+lh_silver.carriere.ft_carriere_agent;date_nomination_echelon;AGTGRD;DAT_NOMECH;Renommage;Date nomination échelon (repris tel quel d'Astra).;Copie de g.DAT_NOMECH renommée en date_nomination_echelon.
+lh_silver.carriere.ft_carriere_agent;date_effet_echelon;AGTGRD;DAT_EFFECH;Renommage;Date effet échelon (repris tel quel d'Astra).;Copie de g.DAT_EFFECH renommée en date_effet_echelon.
+lh_silver.carriere.ft_carriere_agent;date_arrete_echelon;AGTGRD;DAT_ARRECH;Renommage;Date arrêté échelon (repris tel quel d'Astra).;Copie de g.DAT_ARRECH renommée en date_arrete_echelon.
+lh_silver.carriere.ft_carriere_agent;date_cap;AGTGRD;DAT_CAP;Renommage;Date CAP (repris tel quel d'Astra).;Copie de g.DAT_CAP renommée en date_cap.
+lh_silver.carriere.ft_carriere_agent;indicateur_chevron;AGTGRD;IND_CHEVRON;Renommage;Indicateur chevron (repris tel quel d'Astra).;Copie de g.IND_CHEVRON renommée en indicateur_chevron.
+lh_silver.carriere.ft_carriere_agent;indicateur_avancement_moyen;AGTGRD;IND_AVCMOY;Renommage;Indicateur avancement moyen (repris tel quel d'Astra).;Copie de g.IND_AVCMOY renommée en indicateur_avancement_moyen.
+lh_silver.carriere.ft_carriere_agent;code_categorie_agent;AGTGRD;COD_CATAGT;Renommage;Code catégorie agent (repris tel quel d'Astra).;Copie de g.COD_CATAGT renommée en code_categorie_agent.
+lh_silver.carriere.ft_carriere_agent;numero_caisse_collectivite;AGTGRD;NUM_CAISSECOL;Renommage;Numéro caisse collectivité (repris tel quel d'Astra).;Copie de g.NUM_CAISSECOL renommée en numero_caisse_collectivite.
+lh_silver.carriere.ft_carriere_agent;numero_caisse;AGTGRD;NUM_CAISSE;Renommage;Numéro caisse (repris tel quel d'Astra).;Copie de g.NUM_CAISSE renommée en numero_caisse.
+lh_silver.carriere.ft_carriere_agent;numero_prefon;AGTGRD;NUM_PREFON;Renommage;Numéro prefon (repris tel quel d'Astra).;Copie de g.NUM_PREFON renommée en numero_prefon.
+lh_silver.carriere.ft_carriere_agent;code_position_agent;AGTGRD;COD_POSAGT;Renommage;Code position agent (repris tel quel d'Astra).;Copie de g.COD_POSAGT renommée en code_position_agent.
+lh_silver.carriere.ft_carriere_agent;duree_position_statutaire_annees;AGTGRD;DUR_POSSTAAA;Renommage;Durée position statutaire années (repris tel quel d'Astra).;Copie de g.DUR_POSSTAAA renommée en duree_position_statutaire_annees.
+lh_silver.carriere.ft_carriere_agent;duree_position_statutaire_mois;AGTGRD;DUR_POSSTAMM;Renommage;Durée position statutaire mois (repris tel quel d'Astra).;Copie de g.DUR_POSSTAMM renommée en duree_position_statutaire_mois.
+lh_silver.carriere.ft_carriere_agent;duree_position_statutaire_jours;AGTGRD;DUR_POSSTAJJ;Renommage;Durée position statutaire jours (repris tel quel d'Astra).;Copie de g.DUR_POSSTAJJ renommée en duree_position_statutaire_jours.
+lh_silver.carriere.ft_carriere_agent;date_debut_position_statutaire;AGTGRD;DAT_DEBPOSSTA;Renommage;Date début position statutaire (repris tel quel d'Astra).;Copie de g.DAT_DEBPOSSTA renommée en date_debut_position_statutaire.
+lh_silver.carriere.ft_carriere_agent;indicateur_reintegration_droit;AGTGRD;IND_REINTDROIT;Renommage;Indicateur réintégration droit (repris tel quel d'Astra).;Copie de g.IND_REINTDROIT renommée en indicateur_reintegration_droit.
+lh_silver.carriere.ft_carriere_agent;code_detachement;AGTGRD;COD_DETACH;Renommage;Code détachement (repris tel quel d'Astra).;Copie de g.COD_DETACH renommée en code_detachement.
+lh_silver.carriere.ft_carriere_agent;duree_detachement_annees;AGTGRD;DUR_DETACHAA;Renommage;Durée détachement années (repris tel quel d'Astra).;Copie de g.DUR_DETACHAA renommée en duree_detachement_annees.
+lh_silver.carriere.ft_carriere_agent;duree_detachement_mois;AGTGRD;DUR_DETACHMM;Renommage;Durée détachement mois (repris tel quel d'Astra).;Copie de g.DUR_DETACHMM renommée en duree_detachement_mois.
+lh_silver.carriere.ft_carriere_agent;duree_detachement_jours;AGTGRD;DUR_DETACHJJ;Renommage;Durée détachement jours (repris tel quel d'Astra).;Copie de g.DUR_DETACHJJ renommée en duree_detachement_jours.
+lh_silver.carriere.ft_carriere_agent;date_debut_detachement;AGTGRD;DAT_DEBDETACH;Renommage;Date début détachement (repris tel quel d'Astra).;Copie de g.DAT_DEBDETACH renommée en date_debut_detachement.
+lh_silver.carriere.ft_carriere_agent;code_collectivite_origine_detachement;AGTGRD;COD_COLL_ORD;Renommage;Code collectivité origine détachement (repris tel quel d'Astra).;Copie de g.COD_COLL_ORD renommée en code_collectivite_origine_detachement.
+lh_silver.carriere.ft_carriere_agent;code_collectivite_accueil_detachement;AGTGRD;COD_COLL_ACD;Renommage;Code collectivité accueil détachement (repris tel quel d'Astra).;Copie de g.COD_COLL_ACD renommée en code_collectivite_accueil_detachement.
+lh_silver.carriere.ft_carriere_agent;indicateur_mise_disposition;AGTGRD;IND_MISDISPO;Renommage;Indicateur mise disposition (repris tel quel d'Astra).;Copie de g.IND_MISDISPO renommée en indicateur_mise_disposition.
+lh_silver.carriere.ft_carriere_agent;duree_mise_disposition_annees;AGTGRD;DUR_MISDISPOAA;Renommage;Durée mise disposition années (repris tel quel d'Astra).;Copie de g.DUR_MISDISPOAA renommée en duree_mise_disposition_annees.
+lh_silver.carriere.ft_carriere_agent;duree_mise_disposition_mois;AGTGRD;DUR_MISDISPOMM;Renommage;Durée mise disposition mois (repris tel quel d'Astra).;Copie de g.DUR_MISDISPOMM renommée en duree_mise_disposition_mois.
+lh_silver.carriere.ft_carriere_agent;duree_mise_disposition_jours;AGTGRD;DUR_MISDISPOJJ;Renommage;Durée mise disposition jours (repris tel quel d'Astra).;Copie de g.DUR_MISDISPOJJ renommée en duree_mise_disposition_jours.
+lh_silver.carriere.ft_carriere_agent;date_debut_mise_disposition;AGTGRD;DAT_DEBMISDISPO;Renommage;Date début mise disposition (repris tel quel d'Astra).;Copie de g.DAT_DEBMISDISPO renommée en date_debut_mise_disposition.
+lh_silver.carriere.ft_carriere_agent;code_collectivite_origine_mutation;AGTGRD;COD_COLL_ORM;Renommage;Code collectivité origine mutation (repris tel quel d'Astra).;Copie de g.COD_COLL_ORM renommée en code_collectivite_origine_mutation.
+lh_silver.carriere.ft_carriere_agent;code_collectivite_accueil_mutation;AGTGRD;COD_COLL_ACM;Renommage;Code collectivité accueil mutation (repris tel quel d'Astra).;Copie de g.COD_COLL_ACM renommée en code_collectivite_accueil_mutation.
+lh_silver.carriere.ft_carriere_agent;code_regime_cotisation;AGTGRD;COD_REGCOT;Renommage;Code régime cotisation (repris tel quel d'Astra).;Copie de g.COD_REGCOT renommée en code_regime_cotisation.
+lh_silver.carriere.ft_carriere_agent;code_regime_retraite;AGTGRD;COD_REGRET;Renommage;Code régime retraite (repris tel quel d'Astra).;Copie de g.COD_REGRET renommée en code_regime_retraite.
+lh_silver.carriere.ft_carriere_agent;numero_zone_ir;AGTGRD;NUM_ZONIR;Renommage;Numéro zone IR (repris tel quel d'Astra).;Copie de g.NUM_ZONIR renommée en numero_zone_ir.
+lh_silver.carriere.ft_carriere_agent;indicateur_tutelle;AGTGRD;IND_TUTELLE;Renommage;Indicateur tutelle (repris tel quel d'Astra).;Copie de g.IND_TUTELLE renommée en indicateur_tutelle.
+lh_silver.carriere.ft_carriere_agent;indicateur_mandat_syndical;AGTGRD;IND_MANDS;Renommage;Indicateur mandat syndical (repris tel quel d'Astra).;Copie de g.IND_MANDS renommée en indicateur_mandat_syndical.
+lh_silver.carriere.ft_carriere_agent;indicateur_mandat_territorial;AGTGRD;IND_MANDT;Renommage;Indicateur mandat territorial (repris tel quel d'Astra).;Copie de g.IND_MANDT renommée en indicateur_mandat_territorial.
+lh_silver.carriere.ft_carriere_agent;indicateur_attribution_sft;AGTGRD;IND_ATTSFT;Renommage;Indicateur attribution SFT (repris tel quel d'Astra).;Copie de g.IND_ATTSFT renommée en indicateur_attribution_sft.
+lh_silver.carriere.ft_carriere_agent;code_reliquat;AGTGRD;COD_RELIQ;Renommage;Code reliquat (repris tel quel d'Astra).;Copie de g.COD_RELIQ renommée en code_reliquat.
+lh_silver.carriere.ft_carriere_agent;duree_reliquat_annees;AGTGRD;DUR_RELIQAA;Renommage;Durée reliquat années (repris tel quel d'Astra).;Copie de g.DUR_RELIQAA renommée en duree_reliquat_annees.
+lh_silver.carriere.ft_carriere_agent;duree_reliquat_mois;AGTGRD;DUR_RELIQMM;Renommage;Durée reliquat mois (repris tel quel d'Astra).;Copie de g.DUR_RELIQMM renommée en duree_reliquat_mois.
+lh_silver.carriere.ft_carriere_agent;duree_reliquat_jours;AGTGRD;DUR_RELIQJJ;Renommage;Durée reliquat jours (repris tel quel d'Astra).;Copie de g.DUR_RELIQJJ renommée en duree_reliquat_jours.
+lh_silver.carriere.ft_carriere_agent;signe_reliquat;AGTGRD;SIG_RELIQ;Renommage;Signe reliquat (repris tel quel d'Astra).;Copie de g.SIG_RELIQ renommée en signe_reliquat.
+lh_silver.carriere.ft_carriere_agent;code_situation_medicale;AGTGRD;COD_SITMED;Renommage;Code situation médicale (repris tel quel d'Astra).;Copie de g.COD_SITMED renommée en code_situation_medicale.
+lh_silver.carriere.ft_carriere_agent;code_indice_carriere;AGTGRD;COD_INDCAR;Renommage;Code indice carriere (repris tel quel d'Astra).;Copie de g.COD_INDCAR renommée en code_indice_carriere.
+lh_silver.carriere.ft_carriere_agent;indicateur_blocage_minimum;AGTGRD;IND_BLCMIN;Renommage;Indicateur blocage minimum (repris tel quel d'Astra).;Copie de g.IND_BLCMIN renommée en indicateur_blocage_minimum.
+lh_silver.carriere.ft_carriere_agent;indicateur_blocage_maximum;AGTGRD;IND_BLCMAX;Renommage;Indicateur blocage maximum (repris tel quel d'Astra).;Copie de g.IND_BLCMAX renommée en indicateur_blocage_maximum.
+lh_silver.carriere.ft_carriere_agent;indicateur_blocage_moyen;AGTGRD;IND_BLCMOY;Renommage;Indicateur blocage moyen (repris tel quel d'Astra).;Copie de g.IND_BLCMOY renommée en indicateur_blocage_moyen.
+lh_silver.carriere.ft_carriere_agent;indicateur_blocage_grade;AGTGRD;IND_BLCGRD;Renommage;Indicateur blocage grade (repris tel quel d'Astra).;Copie de g.IND_BLCGRD renommée en indicateur_blocage_grade.
+lh_silver.carriere.ft_carriere_agent;indicateur_blocage_titularisation;AGTGRD;IND_BLCTIT;Renommage;Indicateur blocage titularisation (repris tel quel d'Astra).;Copie de g.IND_BLCTIT renommée en indicateur_blocage_titularisation.
+lh_silver.carriere.ft_carriere_agent;indicateur_blocage_chevron;AGTGRD;IND_BLCCHV;Renommage;Indicateur blocage chevron (repris tel quel d'Astra).;Copie de g.IND_BLCCHV renommée en indicateur_blocage_chevron.
+lh_silver.carriere.ft_carriere_agent;indicateur_blocage_interne;AGTGRD;IND_BLCINT;Renommage;Indicateur blocage interne (repris tel quel d'Astra).;Copie de g.IND_BLCINT renommée en indicateur_blocage_interne.
+lh_silver.carriere.ft_carriere_agent;indicateur_blocage_exceptionnel;AGTGRD;IND_BLCEXC;Renommage;Indicateur blocage exceptionnel (repris tel quel d'Astra).;Copie de g.IND_BLCEXC renommée en indicateur_blocage_exceptionnel.
+lh_silver.carriere.ft_carriere_agent;indicateur_reprise_carriere;AGTGRD;IND_REPCAR;Renommage;Indicateur reprise carriere (repris tel quel d'Astra).;Copie de g.IND_REPCAR renommée en indicateur_reprise_carriere.
+lh_silver.carriere.ft_carriere_agent;libelle_grade;AGTGRD;LIB_GRADE;Renommage;Libellé grade (repris tel quel d'Astra).;Copie de g.LIB_GRADE renommée en libelle_grade.
+lh_silver.carriere.ft_carriere_agent;code_categorie_grade;AGTGRD;COD_CATGRADE;Renommage;Code catégorie grade (repris tel quel d'Astra).;Copie de g.COD_CATGRADE renommée en code_categorie_grade.
+lh_silver.carriere.ft_carriere_agent;code_groupe_remuneration;AGTGRD;COD_GRREMUN;Renommage;Code groupe rémunération (repris tel quel d'Astra).;Copie de g.COD_GRREMUN renommée en code_groupe_remuneration.
+lh_silver.carriere.ft_carriere_agent;indice_brut;AGTGRD;IDC_BRUT;Renommage;Indice brut (repris tel quel d'Astra).;Copie de g.IDC_BRUT renommée en indice_brut.
+lh_silver.carriere.ft_carriere_agent;indice_majore;AGTGRD;IDC_MAJORE;Renommage;Indice majore (repris tel quel d'Astra).;Copie de g.IDC_MAJORE renommée en indice_majore.
+lh_silver.carriere.ft_carriere_agent;nombre_bonification_mois;AGTGRD;NBR_BONIFMM;Renommage;Nombre bonification mois (repris tel quel d'Astra).;Copie de g.NBR_BONIFMM renommée en nombre_bonification_mois.
+lh_silver.carriere.ft_carriere_agent;nombre_bonification_jours;AGTGRD;NBR_BONIFJJ;Renommage;Nombre bonification jours (repris tel quel d'Astra).;Copie de g.NBR_BONIFJJ renommée en nombre_bonification_jours.
+lh_silver.carriere.ft_carriere_agent;code_libre_1;AGTGRD;COD_LIBRE1;Renommage;Code libre 1 (repris tel quel d'Astra).;Copie de g.COD_LIBRE1 renommée en code_libre_1.
+lh_silver.carriere.ft_carriere_agent;code_libre_2;AGTGRD;COD_LIBRE2;Renommage;Code libre 2 (repris tel quel d'Astra).;Copie de g.COD_LIBRE2 renommée en code_libre_2.
+lh_silver.carriere.ft_carriere_agent;code_libre_3;AGTGRD;COD_LIBRE3;Renommage;Code libre 3 (repris tel quel d'Astra).;Copie de g.COD_LIBRE3 renommée en code_libre_3.
+lh_silver.carriere.ft_carriere_agent;code_integration_reclassement;AGTGRD;COD_INTREC;Renommage;Code intégration reclassement (repris tel quel d'Astra).;Copie de g.COD_INTREC renommée en code_integration_reclassement.
+lh_silver.carriere.ft_carriere_agent;date_mise_a_jour_jour;AGTGRD;DAT_MAJ_J;Renommage;Date mise à jour jour (repris tel quel d'Astra).;Copie de g.DAT_MAJ_J renommée en date_mise_a_jour_jour.
+lh_silver.carriere.ft_carriere_agent;heure_mise_a_jour;AGTGRD;HEU_MAJ;Renommage;Heure mise à jour (repris tel quel d'Astra).;Copie de g.HEU_MAJ renommée en heure_mise_a_jour.
+lh_silver.carriere.ft_carriere_agent;indicateur_type_stage;AGTGRD;IND_TYPSTAG;Renommage;Indicateur type stage (repris tel quel d'Astra).;Copie de g.IND_TYPSTAG renommée en indicateur_type_stage.
+lh_silver.carriere.ft_carriere_agent;numero_prorogation;AGTGRD;NUM_PROROG;Renommage;Numéro prorogation (repris tel quel d'Astra).;Copie de g.NUM_PROROG renommée en numero_prorogation.
+lh_silver.carriere.ft_carriere_agent;duree_prorogation_annees;AGTGRD;DUR_PROROGAA;Renommage;Durée prorogation années (repris tel quel d'Astra).;Copie de g.DUR_PROROGAA renommée en duree_prorogation_annees.
+lh_silver.carriere.ft_carriere_agent;duree_prorogation_mois;AGTGRD;DUR_PROROGMM;Renommage;Durée prorogation mois (repris tel quel d'Astra).;Copie de g.DUR_PROROGMM renommée en duree_prorogation_mois.
+lh_silver.carriere.ft_carriere_agent;duree_prorogation_jours;AGTGRD;DUR_PROROGJJ;Renommage;Durée prorogation jours (repris tel quel d'Astra).;Copie de g.DUR_PROROGJJ renommée en duree_prorogation_jours.
+lh_silver.carriere.ft_carriere_agent;date_avis_fin_stage;AGTGRD;DAT_AVFINSTAG;Renommage;Date avis fin stage (repris tel quel d'Astra).;Copie de g.DAT_AVFINSTAG renommée en date_avis_fin_stage.
+lh_silver.carriere.ft_carriere_agent;indicateur_avis_superieur;AGTGRD;IND_AVISSUP;Renommage;Indicateur avis supérieur (repris tel quel d'Astra).;Copie de g.IND_AVISSUP renommée en indicateur_avis_superieur.
+lh_silver.carriere.ft_carriere_agent;date_avis_superieur;AGTGRD;DAT_AVISSUP;Renommage;Date avis supérieur (repris tel quel d'Astra).;Copie de g.DAT_AVISSUP renommée en date_avis_superieur.
+lh_silver.carriere.ft_carriere_agent;date_relance;AGTGRD;DAT_RELANCE;Renommage;Date relance (repris tel quel d'Astra).;Copie de g.DAT_RELANCE renommée en date_relance.
+lh_silver.carriere.ft_carriere_agent;date_cap_stage;AGTGRD;DAT_CAPSTAG;Renommage;Date CAP stage (repris tel quel d'Astra).;Copie de g.DAT_CAPSTAG renommée en date_cap_stage.
+lh_silver.carriere.ft_carriere_agent;indicateur_avis_cap;AGTGRD;IND_AVISCAP;Renommage;Indicateur avis CAP (repris tel quel d'Astra).;Copie de g.IND_AVISCAP renommée en indicateur_avis_cap.
+lh_silver.carriere.ft_carriere_agent;code_cas_judiciaire;AGTGRD;COD_CASJUD;Renommage;Code cas judiciaire (repris tel quel d'Astra).;Copie de g.COD_CASJUD renommée en code_cas_judiciaire.
+lh_silver.carriere.ft_carriere_agent;date_cas_judiciaire;AGTGRD;DAT_CASJUD;Renommage;Date cas judiciaire (repris tel quel d'Astra).;Copie de g.DAT_CASJUD renommée en date_cas_judiciaire.
+lh_silver.carriere.ft_carriere_agent;code_contrat;AGTGRD;COD_CTR;Renommage;Code contrat (repris tel quel d'Astra).;Copie de g.COD_CTR renommée en code_contrat.
+lh_silver.carriere.ft_carriere_agent;numero_renouvellement_contrat;AGTGRD;NUM_RENOUVCTR;Renommage;Numéro renouvellement contrat (repris tel quel d'Astra).;Copie de g.NUM_RENOUVCTR renommée en numero_renouvellement_contrat.
+lh_silver.carriere.ft_carriere_agent;code_type_contrat;AGTGRD;COD_TYPCTR;Renommage;Code type contrat (repris tel quel d'Astra).;Copie de g.COD_TYPCTR renommée en code_type_contrat.
+lh_silver.carriere.ft_carriere_agent;date_signature_contrat;AGTGRD;DAT_SIGNCTR;Renommage;Date signature contrat (repris tel quel d'Astra).;Copie de g.DAT_SIGNCTR renommée en date_signature_contrat.
+lh_silver.carriere.ft_carriere_agent;date_debut_contrat;AGTGRD;DAT_DEBCTR;Renommage;Date début contrat (repris tel quel d'Astra).;Copie de g.DAT_DEBCTR renommée en date_debut_contrat.
+lh_silver.carriere.ft_carriere_agent;duree_contrat_annees;AGTGRD;DUR_CTRAA;Renommage;Durée contrat années (repris tel quel d'Astra).;Copie de g.DUR_CTRAA renommée en duree_contrat_annees.
+lh_silver.carriere.ft_carriere_agent;duree_contrat_mois;AGTGRD;DUR_CTRMM;Renommage;Durée contrat mois (repris tel quel d'Astra).;Copie de g.DUR_CTRMM renommée en duree_contrat_mois.
+lh_silver.carriere.ft_carriere_agent;duree_contrat_jours;AGTGRD;DUR_CTRJJ;Renommage;Durée contrat jours (repris tel quel d'Astra).;Copie de g.DUR_CTRJJ renommée en duree_contrat_jours.
+lh_silver.carriere.ft_carriere_agent;duree_periode_essai_mois;AGTGRD;DUR_ESSAIMM;Renommage;Durée période essai mois (repris tel quel d'Astra).;Copie de g.DUR_ESSAIMM renommée en duree_periode_essai_mois.
+lh_silver.carriere.ft_carriere_agent;duree_periode_essai_jours;AGTGRD;DUR_ESSAIJJ;Renommage;Durée période essai jours (repris tel quel d'Astra).;Copie de g.DUR_ESSAIJJ renommée en duree_periode_essai_jours.
+lh_silver.carriere.ft_carriere_agent;date_instruction_contrat;AGTGRD;DAT_INSTCTR;Renommage;Date instruction contrat (repris tel quel d'Astra).;Copie de g.DAT_INSTCTR renommée en date_instruction_contrat.
+lh_silver.carriere.ft_carriere_agent;date_avis_fin_essai;AGTGRD;DAT_AVFINESSAI;Renommage;Date avis fin essai (repris tel quel d'Astra).;Copie de g.DAT_AVFINESSAI renommée en date_avis_fin_essai.
+lh_silver.carriere.ft_carriere_agent;indicateur_avis_superieur_essai;AGTGRD;IND_AVSUPESSAI;Renommage;Indicateur avis supérieur essai (repris tel quel d'Astra).;Copie de g.IND_AVSUPESSAI renommée en indicateur_avis_superieur_essai.
+lh_silver.carriere.ft_carriere_agent;date_relance_essai;AGTGRD;DAT_RELANCESSAI;Renommage;Date relance essai (repris tel quel d'Astra).;Copie de g.DAT_RELANCESSAI renommée en date_relance_essai.
+lh_silver.carriere.ft_carriere_agent;date_avis_renouvellement;AGTGRD;DAT_AVRENOUV;Renommage;Date avis renouvellement (repris tel quel d'Astra).;Copie de g.DAT_AVRENOUV renommée en date_avis_renouvellement.
+lh_silver.carriere.ft_carriere_agent;indicateur_avis_superieur_renouvellement;AGTGRD;IND_AVSUPRENOUV;Renommage;Indicateur avis supérieur renouvellement (repris tel quel d'Astra).;Copie de g.IND_AVSUPRENOUV renommée en indicateur_avis_superieur_renouvellement.
+lh_silver.carriere.ft_carriere_agent;date_relance_renouvellement;AGTGRD;DAT_RELANCRENOUV;Renommage;Date relance renouvellement (repris tel quel d'Astra).;Copie de g.DAT_RELANCRENOUV renommée en date_relance_renouvellement.
+lh_silver.carriere.ft_carriere_agent;indicateur_acces_agent;AGTGRD;IND_ACCAGT;Renommage;Indicateur acces agent (repris tel quel d'Astra).;Copie de g.IND_ACCAGT renommée en indicateur_acces_agent.
+lh_silver.carriere.ft_carriere_agent;date_mise_a_jour;AGTGRD;DAT_MAJ;Renommage;Date mise à jour (repris tel quel d'Astra).;Copie de g.DAT_MAJ renommée en date_mise_a_jour.
+lh_silver.carriere.ft_carriere_agent;utilisateur_mise_a_jour;AGTGRD;USER_MAJ;Renommage;Utilisateur mise à jour (repris tel quel d'Astra).;Copie de g.USER_MAJ renommée en utilisateur_mise_a_jour.
+lh_silver.carriere.ft_carriere_agent;code_temps_travail;AGTGRD;COD_TEMPS;Renommage;Code temps travail (repris tel quel d'Astra).;Copie de g.COD_TEMPS renommée en code_temps_travail.
+lh_silver.carriere.ft_carriere_agent;code_taux;AGTGRD;COD_TAU;Renommage;Code taux (repris tel quel d'Astra).;Copie de g.COD_TAU renommée en code_taux.
+lh_silver.carriere.ft_carriere_agent;indicateur_regime;AGTGRD;IND_REGIME;Renommage;Indicateur régime (repris tel quel d'Astra).;Copie de g.IND_REGIME renommée en indicateur_regime.
+lh_silver.carriere.ft_carriere_agent;indicateur_refus_integration;AGTGRD;IND_REFUS_INTEGRATION;Renommage;Indicateur refus intégration (repris tel quel d'Astra).;Copie de g.IND_REFUS_INTEGRATION renommée en indicateur_refus_integration.
+lh_silver.carriere.ft_carriere_agent;date_refus_integration;AGTGRD;DAT_REFUS_INTEGRATION;Renommage;Date refus intégration (repris tel quel d'Astra).;Copie de g.DAT_REFUS_INTEGRATION renommée en date_refus_integration.
+lh_silver.carriere.ft_carriere_agent;date_decision_position_administrative;AGTGRD;DAT_DECISION_POSADM;Renommage;Date décision position administrative (repris tel quel d'Astra).;Copie de g.DAT_DECISION_POSADM renommée en date_decision_position_administrative.
+lh_silver.carriere.ft_carriere_agent;code_profil_cotisation;AGTGRD;COD_PROF_COT;Renommage;Code profil cotisation (repris tel quel d'Astra).;Copie de g.COD_PROF_COT renommée en code_profil_cotisation.
+lh_silver.carriere.ft_carriere_agent;date_prevision_contrat;AGTGRD;DAT_PRV_CTR;Renommage;Date prévision contrat (repris tel quel d'Astra).;Copie de g.DAT_PRV_CTR renommée en date_prevision_contrat.
+lh_silver.carriere.ft_carriere_agent;code_statut_professionnel;AGTGRD;COD_STAT_PROF;Renommage;Code statut professionnel (repris tel quel d'Astra).;Copie de g.COD_STAT_PROF renommée en code_statut_professionnel.
+lh_silver.carriere.ft_carriere_agent;code_collectivite_travail;AGTGRD;COD_COLL_TRV;Renommage;Code collectivité travail (repris tel quel d'Astra).;Copie de g.COD_COLL_TRV renommée en code_collectivite_travail.
+lh_silver.carriere.ft_carriere_agent;numero_employeur_travail;AGTGRD;NUM_EMPLOY_TRV;Renommage;Numéro employeur travail (repris tel quel d'Astra).;Copie de g.NUM_EMPLOY_TRV renommée en numero_employeur_travail.
+lh_silver.carriere.ft_carriere_agent;code_lien_versement;AGTGRD;COD_LIEN_VERS;Renommage;Code lien versement (repris tel quel d'Astra).;Copie de g.COD_LIEN_VERS renommée en code_lien_versement.
+lh_silver.carriere.ft_carriere_agent;code_temps_partiel;AGTGRD;COD_TEMPS_PART;Renommage;Code temps partiel (repris tel quel d'Astra).;Copie de g.COD_TEMPS_PART renommée en code_temps_partiel.
+lh_silver.carriere.ft_carriere_agent;code_taux_theorique;AGTGRD;COD_TAU_THE;Renommage;Code taux théorique (repris tel quel d'Astra).;Copie de g.COD_TAU_THE renommée en code_taux_theorique.
+lh_silver.carriere.ft_carriere_agent;date_fin_stage;AGTGRD;DAT_FINSTAG;Renommage;Date fin stage (repris tel quel d'Astra).;Copie de g.DAT_FINSTAG renommée en date_fin_stage.
+lh_silver.carriere.ft_carriere_agent;code_statut;AGTGRD;COD_STATUT;Renommage;Code statut (repris tel quel d'Astra).;Copie de g.COD_STATUT renommée en code_statut.
+lh_silver.carriere.ft_carriere_agent;code_corps_superieur_nne;AGTGRD;COD_CORPS_SUP_NNE;Renommage;Code corps supérieur NNE (repris tel quel d'Astra).;Copie de g.COD_CORPS_SUP_NNE renommée en code_corps_superieur_nne.
+lh_silver.carriere.ft_carriere_agent;code_grade_superieur_nne;AGTGRD;COD_GRADE_SUP_NNE;Renommage;Code grade supérieur NNE (repris tel quel d'Astra).;Copie de g.COD_GRADE_SUP_NNE renommée en code_grade_superieur_nne.
+lh_silver.carriere.ft_carriere_agent;code_emploi_superieur_nne;AGTGRD;COD_EMP_SUP_NNE;Renommage;Code emploi supérieur NNE (repris tel quel d'Astra).;Copie de g.COD_EMP_SUP_NNE renommée en code_emploi_superieur_nne.
+lh_silver.carriere.ft_carriere_agent;code_grade_superieur;AGTGRD;COD_GRADE_SUP;Renommage;Code grade supérieur (repris tel quel d'Astra).;Copie de g.COD_GRADE_SUP renommée en code_grade_superieur.
+lh_silver.carriere.ft_carriere_agent;code_echelon_superieur;AGTGRD;COD_ECHELON_SUP;Renommage;Code échelon supérieur (repris tel quel d'Astra).;Copie de g.COD_ECHELON_SUP renommée en code_echelon_superieur.
+lh_silver.carriere.ft_carriere_agent;indice_majore_superieur;AGTGRD;IDC_MAJORE_SUP;Renommage;Indice majore supérieur (repris tel quel d'Astra).;Copie de g.IDC_MAJORE_SUP renommée en indice_majore_superieur.
+lh_silver.carriere.ft_carriere_agent;date_cotisation_superieure;AGTGRD;DAT_COTIS_SUP;Renommage;Date cotisation supérieure (repris tel quel d'Astra).;Copie de g.DAT_COTIS_SUP renommée en date_cotisation_superieure.
+lh_silver.carriere.ft_carriere_agent;code_motif_detachement;AGTGRD;COD_MOTIF_DET;Renommage;Code motif détachement (repris tel quel d'Astra).;Copie de g.COD_MOTIF_DET renommée en code_motif_detachement.
+lh_silver.carriere.ft_carriere_agent;siret_employeur_origine_detachement;AGTGRD;SIRET_EMPLOY_ORD;Renommage;Siret employeur origine détachement (repris tel quel d'Astra).;Copie de g.SIRET_EMPLOY_ORD renommée en siret_employeur_origine_detachement.
+lh_silver.carriere.ft_carriere_agent;siret_employeur_accueil_detachement;AGTGRD;SIRET_EMPLOY_ACD;Renommage;Siret employeur accueil détachement (repris tel quel d'Astra).;Copie de g.SIRET_EMPLOY_ACD renommée en siret_employeur_accueil_detachement.
+lh_silver.carriere.ft_carriere_agent;siret_employeur_origine_mutation;AGTGRD;SIRET_EMPLOY_ORM;Renommage;Siret employeur origine mutation (repris tel quel d'Astra).;Copie de g.SIRET_EMPLOY_ORM renommée en siret_employeur_origine_mutation.
+lh_silver.carriere.ft_carriere_agent;siret_employeur_accueil_mutation;AGTGRD;SIRET_EMPLOY_ACM;Renommage;Siret employeur accueil mutation (repris tel quel d'Astra).;Copie de g.SIRET_EMPLOY_ACM renommée en siret_employeur_accueil_mutation.
+lh_silver.carriere.ft_carriere_agent;code_employeur_origine;AGTGRD;COD_EMPLOY_ORIG;Renommage;Code employeur origine (repris tel quel d'Astra).;Copie de g.COD_EMPLOY_ORIG renommée en code_employeur_origine.
+lh_silver.carriere.ft_carriere_agent;code_statut_juridique_origine;AGTGRD;COD_STAT_JURID_ORIG;Renommage;Code statut juridique origine (repris tel quel d'Astra).;Copie de g.COD_STAT_JURID_ORIG renommée en code_statut_juridique_origine.
+lh_silver.carriere.ft_carriere_agent;code_travailleur_etranger;AGTGRD;COD_TRAV_ETR;Renommage;Code travailleur étranger (repris tel quel d'Astra).;Copie de g.COD_TRAV_ETR renommée en code_travailleur_etranger.
+lh_silver.carriere.ft_carriere_agent;code_zone_travail;AGTGRD;COD_ZONE_TRAV;Renommage;Code zone travail (repris tel quel d'Astra).;Copie de g.COD_ZONE_TRAV renommée en code_zone_travail.
+lh_silver.carriere.ft_carriere_agent;code_juridique_n4ds;AGTGRD;COD_JURIDIQUE_N4DS;Renommage;Code juridique N4DS (repris tel quel d'Astra).;Copie de g.COD_JURIDIQUE_N4DS renommée en code_juridique_n4ds.
+lh_silver.carriere.ft_carriere_agent;code_detachement_n4ds;AGTGRD;COD_DET_N4DS;Renommage;Code détachement N4DS (repris tel quel d'Astra).;Copie de g.COD_DET_N4DS renommée en code_detachement_n4ds.
+lh_silver.carriere.ft_carriere_agent;code_pcs;AGTGRD;COD_PCS;Renommage;Code PCS (repris tel quel d'Astra).;Copie de g.COD_PCS renommée en code_pcs.
+lh_silver.carriere.ft_carriere_agent;code_complement_pcs;AGTGRD;COD_COMP_PCS;Renommage;Code complement PCS (repris tel quel d'Astra).;Copie de g.COD_COMP_PCS renommée en code_complement_pcs.
+lh_silver.carriere.ft_carriere_agent;code_nature_elu;AGTGRD;CODE_NATURE_ELU;Renommage;Code nature élu (repris tel quel d'Astra).;Copie de g.CODE_NATURE_ELU renommée en code_nature_elu.
+lh_silver.carriere.ft_carriere_agent;nombre_mandats_elu;AGTGRD;NBR_MANDAT_ELU;Renommage;Nombre mandats élu (repris tel quel d'Astra).;Copie de g.NBR_MANDAT_ELU renommée en nombre_mandats_elu.
+lh_silver.carriere.ft_carriere_agent;identifiant_adresse_lieu_travail;AGTGRD;ADRESSE_ID_LIEU_TRAVAIL;Renommage;Identifiant adresse lieu travail (repris tel quel d'Astra).;Copie de g.ADRESSE_ID_LIEU_TRAVAIL renommée en identifiant_adresse_lieu_travail.
+lh_silver.carriere.ft_carriere_agent;libelle_lieu_travail;AGTGRD;LIB_LIEU_TRAVAIL;Renommage;Libellé lieu travail (repris tel quel d'Astra).;Copie de g.LIB_LIEU_TRAVAIL renommée en libelle_lieu_travail.
+lh_silver.carriere.ft_carriere_agent;identifiant_lieu_travail;AGTGRD;IDENT_LIEU_TRAVAIL;Renommage;Identifiant lieu travail (repris tel quel d'Astra).;Copie de g.IDENT_LIEU_TRAVAIL renommée en identifiant_lieu_travail.
+lh_silver.carriere.ft_carriere_agent;numero_sequence_enfant;AGTGRD;NUM_SEQ_ENFANT;Renommage;Numéro séquence enfant (repris tel quel d'Astra).;Copie de g.NUM_SEQ_ENFANT renommée en numero_sequence_enfant.
+lh_silver.carriere.ft_carriere_agent;indicateur_emploi_multiple;AGTGRD;IND_EMPL_MULTI;Renommage;Indicateur emploi multiple (repris tel quel d'Astra).;Copie de g.IND_EMPL_MULTI renommée en indicateur_emploi_multiple.
+lh_silver.carriere.ft_carriere_agent;date_debut_mutation;AGTGRD;DAT_DEBMUTATION;Renommage;Date début mutation (repris tel quel d'Astra).;Copie de g.DAT_DEBMUTATION renommée en date_debut_mutation.
+lh_silver.carriere.ft_carriere_agent;duree_mutation_annees;AGTGRD;DUR_MUTAA;Renommage;Durée mutation années (repris tel quel d'Astra).;Copie de g.DUR_MUTAA renommée en duree_mutation_annees.
+lh_silver.carriere.ft_carriere_agent;duree_mutation_mois;AGTGRD;DUR_MUTMM;Renommage;Durée mutation mois (repris tel quel d'Astra).;Copie de g.DUR_MUTMM renommée en duree_mutation_mois.
+lh_silver.carriere.ft_carriere_agent;duree_mutation_jours;AGTGRD;DUR_MUTJJ;Renommage;Durée mutation jours (repris tel quel d'Astra).;Copie de g.DUR_MUTJJ renommée en duree_mutation_jours.
+lh_silver.carriere.ft_carriere_agent;code_exclusion_dsn;AGTGRD;COD_EXCLUSION_DSN;Renommage;Code exclusion DSN (repris tel quel d'Astra).;Copie de g.COD_EXCLUSION_DSN renommée en code_exclusion_dsn.
+lh_silver.carriere.ft_carriere_agent;taux_dab;AGTGRD;TAU_DAB;Renommage;Taux DAB (repris tel quel d'Astra).;Copie de g.TAU_DAB renommée en taux_dab.
+lh_silver.carriere.ft_carriere_agent;groupe_fonction;AGTGRD;GRPFCT;Renommage;Groupe fonction (repris tel quel d'Astra).;Copie de g.GRPFCT renommée en groupe_fonction.
+lh_silver.carriere.ft_carriere_agent;code_chevron;AGTGRD;COD_CHEVRON;Renommage;Code chevron (repris tel quel d'Astra).;Copie de g.COD_CHEVRON renommée en code_chevron.
+lh_silver.carriere.ft_carriere_agent;date_nomination_chevron;AGTGRD;DAT_NOMCHEVRON;Renommage;Date nomination chevron (repris tel quel d'Astra).;Copie de g.DAT_NOMCHEVRON renommée en date_nomination_chevron.
+lh_silver.carriere.ft_carriere_agent;date_anciennete_chevron;AGTGRD;DAT_ANCCHEVRON;Renommage;Date ancienneté chevron (repris tel quel d'Astra).;Copie de g.DAT_ANCCHEVRON renommée en date_anciennete_chevron.
+lh_silver.carriere.ft_carriere_agent;duree_stage_annees;AGTGRD;DUR_STAGAA;Renommage;Durée stage années (repris tel quel d'Astra).;Copie de g.DUR_STAGAA renommée en duree_stage_annees.
+lh_silver.carriere.ft_carriere_agent;duree_stage_mois;AGTGRD;DUR_STAGMM;Renommage;Durée stage mois (repris tel quel d'Astra).;Copie de g.DUR_STAGMM renommée en duree_stage_mois.
+lh_silver.carriere.ft_carriere_agent;duree_stage_jours;AGTGRD;DUR_STAGJJ;Renommage;Durée stage jours (repris tel quel d'Astra).;Copie de g.DUR_STAGJJ renommée en duree_stage_jours.
+lh_silver.carriere.ft_carriere_agent;pourcentage_mise_a_disposition;AGTGRD;PRC_MAD;Renommage;Pourcentage mise à disposition (repris tel quel d'Astra).;Copie de g.PRC_MAD renommée en pourcentage_mise_a_disposition.
+lh_silver.carriere.ft_carriere_agent;contrat_dsn_origine;AGTGRD;CONTRAT_DSN_ORIGINE;Renommage;Contrat DSN origine (repris tel quel d'Astra).;Copie de g.CONTRAT_DSN_ORIGINE renommée en contrat_dsn_origine.
+lh_silver.carriere.ft_carriere_agent;date_stage_en_cours;AGTGRD;DAT_STG_ENCOURS;Renommage;Date stage en cours (repris tel quel d'Astra).;Copie de g.DAT_STG_ENCOURS renommée en date_stage_en_cours.
+lh_silver.carriere.ft_carriere_agent;suivi_formation;AGTGRD;SUIVIFORMATION;Renommage;Suivi formation (repris tel quel d'Astra).;Copie de g.SUIVIFORMATION renommée en suivi_formation.
+lh_silver.carriere.ft_carriere_agent;indice_majore_sft;AGTGRD;IDC_MAJORE_SFT;Renommage;Indice majore SFT (repris tel quel d'Astra).;Copie de g.IDC_MAJORE_SFT renommée en indice_majore_sft.
+lh_silver.carriere.ft_carriere_agent;code_cumul_emploi_retraite;AGTGRD;COD_CUM_EMPLOI_RETRAITE;Renommage;Code cumul emploi retraite (repris tel quel d'Astra).;Copie de g.COD_CUM_EMPLOI_RETRAITE renommée en code_cumul_emploi_retraite.
+lh_silver.carriere.ft_carriere_agent;date_reception_avis;AGTGRD;DAT_RECEPAVIS;Renommage;Date réception avis (repris tel quel d'Astra).;Copie de g.DAT_RECEPAVIS renommée en date_reception_avis.
+lh_silver.carriere.ft_carriere_agent;numero_contrat_cnracl;AGTGRD;NUM_CTR_CNRACL;Renommage;Numéro contrat CNRACL (repris tel quel d'Astra).;Copie de g.NUM_CTR_CNRACL renommée en numero_contrat_cnracl.
+lh_silver.carriere.ft_carriere_agent;date_acquisition_bonification;AGTGRD;DAT_ACQUISITION_BONIF;Renommage;Date acquisition bonification (repris tel quel d'Astra).;Copie de g.DAT_ACQUISITION_BONIF renommée en date_acquisition_bonification.
+lh_silver.carriere.ft_carriere_agent;code_bonification;AGTGRD;COD_BONIF;Renommage;Code bonification (repris tel quel d'Astra).;Copie de g.COD_BONIF renommée en code_bonification.
+lh_silver.carriere.ft_carriere_agent;duree_bonification_mois;AGTGRD;DUR_BONIFMM;Renommage;Durée bonification mois (repris tel quel d'Astra).;Copie de g.DUR_BONIFMM renommée en duree_bonification_mois.
+lh_silver.carriere.ft_carriere_agent;code_quartier;AGTGRD;COD_QUARTIER;Renommage;Code quartier (repris tel quel d'Astra).;Copie de g.COD_QUARTIER renommée en code_quartier.
+lh_silver.carriere.ft_carriere_agent;date_debut_jour;AGTGRD;DAT_DEBUT_J;Renommage;Date début jour (repris tel quel d'Astra).;Copie de g.DAT_DEBUT_J renommée en date_debut_jour.
+lh_silver.carriere.ft_carriere_agent;date_fin_jour;AGTGRD;DAT_FIN_J;Renommage;Date fin jour (repris tel quel d'Astra).;Copie de g.DAT_FIN_J renommée en date_fin_jour.
+lh_silver.carriere.ft_carriere_agent;date_debut_validite;AGTGRD;DAT_DEBUT;Conversion de type;Début de la période de validité de la ligne.;CAST(g.DAT_DEBUT AS date)
+lh_silver.carriere.ft_carriere_agent;date_fin_validite;AGTGRD;DAT_FIN;Date de fin par défaut;"Fin de la période de validité ; 31/12/2099 quand la période est toujours en cours.";CAST(COALESCE(g.DAT_FIN, '2099-12-31') AS date)
+lh_silver.carriere.ft_effectif_agent;hash_key;EMPLOI;COD_COLL, DAT_DEBUT, IDF_AGENT, NUM_EMPLOI;Clé technique (hash);Identifiant technique unique de la ligne (une version = une clé), utilisé pour les mises à jour.;CAST(SHA2(CONCAT(e.COD_COLL, '|', e.IDF_AGENT, '|', e.NUM_EMPLOI, '|', CAST(e.DAT_DEBUT AS char(10))), 256) AS varchar(64))
+lh_silver.carriere.ft_effectif_agent;identifiant;EMPLOI;IDENT_ID;Renommage;Identifiant (repris tel quel d'Astra).;Copie de e.IDENT_ID renommée en identifiant.
+lh_silver.carriere.ft_effectif_agent;code_organisme;EMPLOI;COD_COLL;Renommage;Code organisme (repris tel quel d'Astra).;Copie de e.COD_COLL renommée en code_organisme.
+lh_silver.carriere.ft_effectif_agent;matricule_agent;EMPLOI;IDF_AGENT;Renommage;Matricule agent (repris tel quel d'Astra).;Copie de e.IDF_AGENT renommée en matricule_agent.
+lh_silver.carriere.ft_effectif_agent;identifiant_cle;EMPLOI;IDF_CLE;Renommage;Identifiant clé (repris tel quel d'Astra).;Copie de e.IDF_CLE renommée en identifiant_cle.
+lh_silver.carriere.ft_effectif_agent;numero_emploi;EMPLOI;NUM_EMPLOI;Renommage;Numéro emploi (repris tel quel d'Astra).;Copie de e.NUM_EMPLOI renommée en numero_emploi.
+lh_silver.carriere.ft_effectif_agent;libelle_emploi;EMPLOI;LIB_EMPLOI;Renommage;Libellé emploi (repris tel quel d'Astra).;Copie de e.LIB_EMPLOI renommée en libelle_emploi.
+lh_silver.carriere.ft_effectif_agent;indicateur_paie;EMPLOI;IND_PAIE;Renommage;Indicateur paie (repris tel quel d'Astra).;Copie de e.IND_PAIE renommée en indicateur_paie.
+lh_silver.carriere.ft_effectif_agent;date_debut_paie;EMPLOI;DAT_DEBPAIE;Renommage;Date début paie (repris tel quel d'Astra).;Copie de e.DAT_DEBPAIE renommée en date_debut_paie.
+lh_silver.carriere.ft_effectif_agent;date_fin_paie;EMPLOI;DAT_FINPAIE;Renommage;Date fin paie (repris tel quel d'Astra).;Copie de e.DAT_FINPAIE renommée en date_fin_paie.
+lh_silver.carriere.ft_effectif_agent;code_employeur;EMPLOI;COD_EMPLOY;Renommage;Code employeur (repris tel quel d'Astra).;Copie de e.COD_EMPLOY renommée en code_employeur.
+lh_silver.carriere.ft_effectif_agent;code_preseance;EMPLOI;COD_PRESEANCE;Renommage;Code préséance (repris tel quel d'Astra).;Copie de e.COD_PRESEANCE renommée en code_preseance.
+lh_silver.carriere.ft_effectif_agent;code_structure;EMPLOI;COD_STRUC;Renommage;Code structure (repris tel quel d'Astra).;Copie de e.COD_STRUC renommée en code_structure.
+lh_silver.carriere.ft_effectif_agent;code_structure_fonctionnelle;EMPLOI;COD_STRUC_FONC;Renommage;Code structure fonctionnelle (repris tel quel d'Astra).;Copie de e.COD_STRUC_FONC renommée en code_structure_fonctionnelle.
+lh_silver.carriere.ft_effectif_agent;code_structure_geographique;EMPLOI;COD_STRUC_GEO;Renommage;Code structure géographique (repris tel quel d'Astra).;Copie de e.COD_STRUC_GEO renommée en code_structure_geographique.
+lh_silver.carriere.ft_effectif_agent;code_fonction;EMPLOI;COD_FONCTION;Renommage;Code fonction (repris tel quel d'Astra).;Copie de e.COD_FONCTION renommée en code_fonction.
+lh_silver.carriere.ft_effectif_agent;identifiant_domaine_activite;EMPLOI;DOMACT_ID;Renommage;Identifiant domaine activité (repris tel quel d'Astra).;Copie de e.DOMACT_ID renommée en identifiant_domaine_activite.
+lh_silver.carriere.ft_effectif_agent;code_poste;EMPLOI;COD_POSTE;Renommage;Code poste (repris tel quel d'Astra).;Copie de e.COD_POSTE renommée en code_poste.
+lh_silver.carriere.ft_effectif_agent;indicateur_poste_emploi;EMPLOI;IND_POSTE_EMPLOI;Renommage;Indicateur poste emploi (repris tel quel d'Astra).;Copie de e.IND_POSTE_EMPLOI renommée en indicateur_poste_emploi.
+lh_silver.carriere.ft_effectif_agent;identifiant_affectation_poste;EMPLOI;AFFPOSTE_ID;Renommage;Identifiant affectation poste (repris tel quel d'Astra).;Copie de e.AFFPOSTE_ID renommée en identifiant_affectation_poste.
+lh_silver.carriere.ft_effectif_agent;identifiant_modalite_travail;EMPLOI;MODTRAV_ID;Renommage;Identifiant modalité travail (repris tel quel d'Astra).;Copie de e.MODTRAV_ID renommée en identifiant_modalite_travail.
+lh_silver.carriere.ft_effectif_agent;code_motif_affectation;EMPLOI;COD_MOTAFF;Renommage;Code motif affectation (repris tel quel d'Astra).;Copie de e.COD_MOTAFF renommée en code_motif_affectation.
+lh_silver.carriere.ft_effectif_agent;code_classement_cnracl;EMPLOI;COD_CLASCNRACL;Renommage;Code classement CNRACL (repris tel quel d'Astra).;Copie de e.COD_CLASCNRACL renommée en code_classement_cnracl.
+lh_silver.carriere.ft_effectif_agent;code_permanence;EMPLOI;COD_PERMANENT;Renommage;Code permanence (repris tel quel d'Astra).;Copie de e.COD_PERMANENT renommée en code_permanence.
+lh_silver.carriere.ft_effectif_agent;code_complement;EMPLOI;COD_COMPL;Renommage;Code complement (repris tel quel d'Astra).;Copie de e.COD_COMPL renommée en code_complement.
+lh_silver.carriere.ft_effectif_agent;base_hebdomadaire_heures;EMPLOI;BAS_HEBDO_HH;Renommage;Base hebdomadaire heures (repris tel quel d'Astra).;Copie de e.BAS_HEBDO_HH renommée en base_hebdomadaire_heures.
+lh_silver.carriere.ft_effectif_agent;base_hebdomadaire_minutes;EMPLOI;BAS_HEBDO_MM;Renommage;Base hebdomadaire minutes (repris tel quel d'Astra).;Copie de e.BAS_HEBDO_MM renommée en base_hebdomadaire_minutes.
+lh_silver.carriere.ft_effectif_agent;code_secteur;EMPLOI;COD_SECT;Renommage;Code secteur (repris tel quel d'Astra).;Copie de e.COD_SECT renommée en code_secteur.
+lh_silver.carriere.ft_effectif_agent;identifiant_remplacement;EMPLOI;IDF_REMP;Renommage;Identifiant remplacement (repris tel quel d'Astra).;Copie de e.IDF_REMP renommée en identifiant_remplacement.
+lh_silver.carriere.ft_effectif_agent;code_ventilation_budgetaire;EMPLOI;COD_VENT_BUDG;Renommage;Code ventilation budgétaire (repris tel quel d'Astra).;Copie de e.COD_VENT_BUDG renommée en code_ventilation_budgetaire.
+lh_silver.carriere.ft_effectif_agent;type_ventilation_budgetaire;EMPLOI;TYP_VENT_BUDG;Renommage;Type ventilation budgétaire (repris tel quel d'Astra).;Copie de e.TYP_VENT_BUDG renommée en type_ventilation_budgetaire.
+lh_silver.carriere.ft_effectif_agent;code_taux;EMPLOI;COD_TAU;Renommage;Code taux (repris tel quel d'Astra).;Copie de e.COD_TAU renommée en code_taux.
+lh_silver.carriere.ft_effectif_agent;code_type_remuneration;EMPLOI;COD_TYPREMUN;Renommage;Code type rémunération (repris tel quel d'Astra).;Copie de e.COD_TYPREMUN renommée en code_type_remuneration.
+lh_silver.carriere.ft_effectif_agent;code_classe_remuneration;EMPLOI;COD_CLASREMUN;Renommage;Code classe rémunération (repris tel quel d'Astra).;Copie de e.COD_CLASREMUN renommée en code_classe_remuneration.
+lh_silver.carriere.ft_effectif_agent;statut_remuneration;EMPLOI;COD_CLASREMUN;Règle de gestion;Indique si l'emploi est rémunéré ou non (classe de rémunération 0 = non rémunéré).;CASE WHEN COD_CLASREMUN = 0 THEN 'Non rémunéré' ELSE 'Rémunéré'.
+lh_silver.carriere.ft_effectif_agent;code_equivalence_remuneration;EMPLOI;COD_EQREMUN;Renommage;Code équivalence rémunération (repris tel quel d'Astra).;Copie de e.COD_EQREMUN renommée en code_equivalence_remuneration.
+lh_silver.carriere.ft_effectif_agent;indice_personnalise;EMPLOI;IDC_PERSO;Renommage;Indice personnalisé (repris tel quel d'Astra).;Copie de e.IDC_PERSO renommée en indice_personnalise.
+lh_silver.carriere.ft_effectif_agent;indice_bonification;EMPLOI;IDC_BONIF;Renommage;Indice bonification (repris tel quel d'Astra).;Copie de e.IDC_BONIF renommée en indice_bonification.
+lh_silver.carriere.ft_effectif_agent;code_categorie_emploi;EMPLOI;CODES_CATEMP;Renommage;Code catégorie emploi (repris tel quel d'Astra).;Copie de e.CODES_CATEMP renommée en code_categorie_emploi.
+lh_silver.carriere.ft_effectif_agent;indicateur_soumis;EMPLOI;IND_SOUMIS;Renommage;Indicateur soumis (repris tel quel d'Astra).;Copie de e.IND_SOUMIS renommée en indicateur_soumis.
+lh_silver.carriere.ft_effectif_agent;code_regime_cotisation;EMPLOI;COD_REGCOT;Renommage;Code régime cotisation (repris tel quel d'Astra).;Copie de e.COD_REGCOT renommée en code_regime_cotisation.
+lh_silver.carriere.ft_effectif_agent;code_regime_retraite;EMPLOI;COD_REGRET;Renommage;Code régime retraite (repris tel quel d'Astra).;Copie de e.COD_REGRET renommée en code_regime_retraite.
+lh_silver.carriere.ft_effectif_agent;indicateur_reprise_carriere;EMPLOI;IND_REPCAR;Renommage;Indicateur reprise carriere (repris tel quel d'Astra).;Copie de e.IND_REPCAR renommée en indicateur_reprise_carriere.
+lh_silver.carriere.ft_effectif_agent;libelle_employeur;EMPLOI;LIB_EMPLOY;Renommage;Libellé employeur (repris tel quel d'Astra).;Copie de e.LIB_EMPLOY renommée en libelle_employeur.
+lh_silver.carriere.ft_effectif_agent;libelle_poste;EMPLOI;LIB_POSTE;Renommage;Libellé poste (repris tel quel d'Astra).;Copie de e.LIB_POSTE renommée en libelle_poste.
+lh_silver.carriere.ft_effectif_agent;libelle_fonction;EMPLOI;LIB_FONCTION;Renommage;Libellé fonction (repris tel quel d'Astra).;Copie de e.LIB_FONCTION renommée en libelle_fonction.
+lh_silver.carriere.ft_effectif_agent;libelle_service;EMPLOI;LIB_SERVICE;Renommage;Libellé service (repris tel quel d'Astra).;Copie de e.LIB_SERVICE renommée en libelle_service.
+lh_silver.carriere.ft_effectif_agent;indicateur_anciennete;EMPLOI;IND_ANCIENNETE;Renommage;Indicateur ancienneté (repris tel quel d'Astra).;Copie de e.IND_ANCIENNETE renommée en indicateur_anciennete.
+lh_silver.carriere.ft_effectif_agent;date_mise_a_jour;EMPLOI;DAT_MAJ;Renommage;Date mise à jour (repris tel quel d'Astra).;Copie de e.DAT_MAJ renommée en date_mise_a_jour.
+lh_silver.carriere.ft_effectif_agent;utilisateur_mise_a_jour;EMPLOI;USER_MAJ;Renommage;Utilisateur mise à jour (repris tel quel d'Astra).;Copie de e.USER_MAJ renommée en utilisateur_mise_a_jour.
+lh_silver.carriere.ft_effectif_agent;repartition_numerateur;EMPLOI;REPART_NUMER;Renommage;Répartition numérateur (repris tel quel d'Astra).;Copie de e.REPART_NUMER renommée en repartition_numerateur.
+lh_silver.carriere.ft_effectif_agent;repartition_denominateur;EMPLOI;REPART_DENOMI;Renommage;Répartition dénominateur (repris tel quel d'Astra).;Copie de e.REPART_DENOMI renommée en repartition_denominateur.
+lh_silver.carriere.ft_effectif_agent;code_budgetaire;EMPLOI;COD_BUDG;Renommage;Code budgétaire (repris tel quel d'Astra).;Copie de e.COD_BUDG renommée en code_budgetaire.
+lh_silver.carriere.ft_effectif_agent;montant_brut;EMPLOI;MONTANT_BRUT;Renommage;Montant brut (repris tel quel d'Astra).;Copie de e.MONTANT_BRUT renommée en montant_brut.
+lh_silver.carriere.ft_effectif_agent;type_affectation;EMPLOI;TYPE_AFFECT;Renommage;Type affectation (repris tel quel d'Astra).;Copie de e.TYPE_AFFECT renommée en type_affectation.
+lh_silver.carriere.ft_effectif_agent;code_contrat;EMPLOI;COD_CTR;Renommage;Code contrat (repris tel quel d'Astra).;Copie de e.COD_CTR renommée en code_contrat.
+lh_silver.carriere.ft_effectif_agent;indice_complementaire;EMPLOI;IDC_COMPLIND;Renommage;Indice complémentaire (repris tel quel d'Astra).;Copie de e.IDC_COMPLIND renommée en indice_complementaire.
+lh_silver.carriere.ft_effectif_agent;code_nbi;EMPLOI;COD_NBI;Renommage;Code NBI (repris tel quel d'Astra).;Copie de e.COD_NBI renommée en code_nbi.
+lh_silver.carriere.ft_effectif_agent;date_attribution_nbi;EMPLOI;DATE_ATTRIBNBI;Renommage;Date attribution NBI (repris tel quel d'Astra).;Copie de e.DATE_ATTRIBNBI renommée en date_attribution_nbi.
+lh_silver.carriere.ft_effectif_agent;groupe_fonction;EMPLOI;GRPFCT;Renommage;Groupe fonction (repris tel quel d'Astra).;Copie de e.GRPFCT renommée en groupe_fonction.
+lh_silver.carriere.ft_effectif_agent;code_quartier;EMPLOI;COD_QUARTIER;Renommage;Code quartier (repris tel quel d'Astra).;Copie de e.COD_QUARTIER renommée en code_quartier.
+lh_silver.carriere.ft_effectif_agent;code_population_dsn;EMPLOI;COD_DSNPOPULATION;Renommage;Code population DSN (repris tel quel d'Astra).;Copie de e.COD_DSNPOPULATION renommée en code_population_dsn.
+lh_silver.carriere.ft_effectif_agent;code_contrat_relie_emploi;EMPLOI;COD_CTR_RELEMP;Renommage;Code contrat relie emploi (repris tel quel d'Astra).;Copie de e.COD_CTR_RELEMP renommée en code_contrat_relie_emploi.
+lh_silver.carriere.ft_effectif_agent;date_debut_relation_emploi;EMPLOI;DAT_DEBUT_RELEMP;Renommage;Date début relation emploi (repris tel quel d'Astra).;Copie de e.DAT_DEBUT_RELEMP renommée en date_debut_relation_emploi.
+lh_silver.carriere.ft_effectif_agent;date_fin_relation_emploi;EMPLOI;DAT_FIN_RELEMP;Renommage;Date fin relation emploi (repris tel quel d'Astra).;Copie de e.DAT_FIN_RELEMP renommée en date_fin_relation_emploi.
+lh_silver.carriere.ft_effectif_agent;date_debut_validite;EMPLOI;DAT_DEBUT;Conversion de type;Début de la période de validité de la ligne.;CAST(e.DAT_DEBUT AS date)
+lh_silver.carriere.ft_effectif_agent;date_fin_validite;EMPLOI;DAT_FIN;Date de fin par défaut;"Fin de la période de validité ; 31/12/2099 quand la période est toujours en cours.";CAST(COALESCE(e.DAT_FIN, '2099-12-31') AS date)
+lh_silver.carriere.ft_mouvement_agent;hash_key;AGTCTR;COD_COLL, COD_CTR, DAT_DEBUT, IDF_AGENT;Clé technique (hash);Identifiant technique unique de la ligne (une version = une clé), utilisé pour les mises à jour.;CAST(SHA2(CONCAT(c.COD_COLL, '|', c.IDF_AGENT, '|', c.COD_CTR, '|', CAST(c.DAT_DEBUT AS char(10))), 256) AS varchar(64))
+lh_silver.carriere.ft_mouvement_agent;identifiant;AGTCTR;IDENT_ID;Renommage;Identifiant (repris tel quel d'Astra).;Copie de c.IDENT_ID renommée en identifiant.
+lh_silver.carriere.ft_mouvement_agent;code_organisme;AGTCTR;COD_COLL;Renommage;Code organisme (repris tel quel d'Astra).;Copie de c.COD_COLL renommée en code_organisme.
+lh_silver.carriere.ft_mouvement_agent;matricule_agent;AGTCTR;IDF_AGENT;Renommage;Matricule agent (repris tel quel d'Astra).;Copie de c.IDF_AGENT renommée en matricule_agent.
+lh_silver.carriere.ft_mouvement_agent;identifiant_cle;AGTCTR;IDF_CLE;Renommage;Identifiant clé (repris tel quel d'Astra).;Copie de c.IDF_CLE renommée en identifiant_cle.
+lh_silver.carriere.ft_mouvement_agent;date_debut_contrat;AGTCTR;DAT_DEBCTR;Renommage;Date début contrat (repris tel quel d'Astra).;Copie de c.DAT_DEBCTR renommée en date_debut_contrat.
+lh_silver.carriere.ft_mouvement_agent;code_contrat;AGTCTR;COD_CTR;Renommage;Code contrat (repris tel quel d'Astra).;Copie de c.COD_CTR renommée en code_contrat.
+lh_silver.carriere.ft_mouvement_agent;code_type_contrat;AGTCTR;COD_TYPCTR;Renommage;Code type contrat (repris tel quel d'Astra).;Copie de c.COD_TYPCTR renommée en code_type_contrat.
+lh_silver.carriere.ft_mouvement_agent;date_deliberation;AGTCTR;DAT_DELIB;Renommage;Date délibération (repris tel quel d'Astra).;Copie de c.DAT_DELIB renommée en date_deliberation.
+lh_silver.carriere.ft_mouvement_agent;date_prefecture;AGTCTR;DAT_PREF;Renommage;Date préfecture (repris tel quel d'Astra).;Copie de c.DAT_PREF renommée en date_prefecture.
+lh_silver.carriere.ft_mouvement_agent;date_signature_contrat;AGTCTR;DAT_SIGNCTR;Renommage;Date signature contrat (repris tel quel d'Astra).;Copie de c.DAT_SIGNCTR renommée en date_signature_contrat.
+lh_silver.carriere.ft_mouvement_agent;date_instruction_contrat;AGTCTR;DAT_INSTCTR;Renommage;Date instruction contrat (repris tel quel d'Astra).;Copie de c.DAT_INSTCTR renommée en date_instruction_contrat.
+lh_silver.carriere.ft_mouvement_agent;date_fin_contrat;AGTCTR;DAT_FIN_CTR;Renommage;Date fin contrat (repris tel quel d'Astra).;Copie de c.DAT_FIN_CTR renommée en date_fin_contrat.
+lh_silver.carriere.ft_mouvement_agent;numero_renouvellement_contrat;AGTCTR;NUM_RENOUVCTR;Renommage;Numéro renouvellement contrat (repris tel quel d'Astra).;Copie de c.NUM_RENOUVCTR renommée en numero_renouvellement_contrat.
+lh_silver.carriere.ft_mouvement_agent;code_cas_judiciaire;AGTCTR;COD_CASJUD;Renommage;Code cas judiciaire (repris tel quel d'Astra).;Copie de c.COD_CASJUD renommée en code_cas_judiciaire.
+lh_silver.carriere.ft_mouvement_agent;date_cas_judiciaire;AGTCTR;DAT_CASJUD;Renommage;Date cas judiciaire (repris tel quel d'Astra).;Copie de c.DAT_CASJUD renommée en date_cas_judiciaire.
+lh_silver.carriere.ft_mouvement_agent;numero_avenant;AGTCTR;NUM_AVENANT;Renommage;Numéro avenant (repris tel quel d'Astra).;Copie de c.NUM_AVENANT renommée en numero_avenant.
+lh_silver.carriere.ft_mouvement_agent;duree_periode_essai_mois;AGTCTR;DUR_ESSAIMM;Renommage;Durée période essai mois (repris tel quel d'Astra).;Copie de c.DUR_ESSAIMM renommée en duree_periode_essai_mois.
+lh_silver.carriere.ft_mouvement_agent;duree_periode_essai_jours;AGTCTR;DUR_ESSAIJJ;Renommage;Durée période essai jours (repris tel quel d'Astra).;Copie de c.DUR_ESSAIJJ renommée en duree_periode_essai_jours.
+lh_silver.carriere.ft_mouvement_agent;date_avis_fin_essai;AGTCTR;DAT_AVFINESSAI;Renommage;Date avis fin essai (repris tel quel d'Astra).;Copie de c.DAT_AVFINESSAI renommée en date_avis_fin_essai.
+lh_silver.carriere.ft_mouvement_agent;date_relance_essai;AGTCTR;DAT_RELANCESSAI;Renommage;Date relance essai (repris tel quel d'Astra).;Copie de c.DAT_RELANCESSAI renommée en date_relance_essai.
+lh_silver.carriere.ft_mouvement_agent;indicateur_avis_superieur_essai;AGTCTR;IND_AVSUPESSAI;Renommage;Indicateur avis supérieur essai (repris tel quel d'Astra).;Copie de c.IND_AVSUPESSAI renommée en indicateur_avis_superieur_essai.
+lh_silver.carriere.ft_mouvement_agent;indicateur_acces_agent;AGTCTR;IND_ACCAGT;Renommage;Indicateur acces agent (repris tel quel d'Astra).;Copie de c.IND_ACCAGT renommée en indicateur_acces_agent.
+lh_silver.carriere.ft_mouvement_agent;duree_renouvellement_essai_mois;AGTCTR;DUR_REN_ESSAIMM;Renommage;Durée renouvellement essai mois (repris tel quel d'Astra).;Copie de c.DUR_REN_ESSAIMM renommée en duree_renouvellement_essai_mois.
+lh_silver.carriere.ft_mouvement_agent;duree_renouvellement_essai_jours;AGTCTR;DUR_REN_ESSAIJJ;Renommage;Durée renouvellement essai jours (repris tel quel d'Astra).;Copie de c.DUR_REN_ESSAIJJ renommée en duree_renouvellement_essai_jours.
+lh_silver.carriere.ft_mouvement_agent;date_avis_renouvellement;AGTCTR;DAT_AVRENOUV;Renommage;Date avis renouvellement (repris tel quel d'Astra).;Copie de c.DAT_AVRENOUV renommée en date_avis_renouvellement.
+lh_silver.carriere.ft_mouvement_agent;date_relance_renouvellement;AGTCTR;DAT_RELANCRENOUV;Renommage;Date relance renouvellement (repris tel quel d'Astra).;Copie de c.DAT_RELANCRENOUV renommée en date_relance_renouvellement.
+lh_silver.carriere.ft_mouvement_agent;indicateur_avis_superieur_renouvellement;AGTCTR;IND_AVSUPRENOUV;Renommage;Indicateur avis supérieur renouvellement (repris tel quel d'Astra).;Copie de c.IND_AVSUPRENOUV renommée en indicateur_avis_superieur_renouvellement.
+lh_silver.carriere.ft_mouvement_agent;date_rupture;AGTCTR;DAT_RUPTURE;Renommage;Date rupture (repris tel quel d'Astra).;Copie de c.DAT_RUPTURE renommée en date_rupture.
+lh_silver.carriere.ft_mouvement_agent;code_unite_horaire;AGTCTR;COD_UN_HOR;Renommage;Code unite horaire (repris tel quel d'Astra).;Copie de c.COD_UN_HOR renommée en code_unite_horaire.
+lh_silver.carriere.ft_mouvement_agent;nombre_heures_contrat;AGTCTR;NBR_HOR_CTR;Renommage;Nombre heures contrat (repris tel quel d'Astra).;Copie de c.NBR_HOR_CTR renommée en nombre_heures_contrat.
+lh_silver.carriere.ft_mouvement_agent;date_mise_a_jour;AGTCTR;DAT_MAJ;Renommage;Date mise à jour (repris tel quel d'Astra).;Copie de c.DAT_MAJ renommée en date_mise_a_jour.
+lh_silver.carriere.ft_mouvement_agent;utilisateur_mise_a_jour;AGTCTR;USER_MAJ;Renommage;Utilisateur mise à jour (repris tel quel d'Astra).;Copie de c.USER_MAJ renommée en utilisateur_mise_a_jour.
+lh_silver.carriere.ft_mouvement_agent;date_fin_essai;AGTCTR;DAT_FINESSAI;Renommage;Date fin essai (repris tel quel d'Astra).;Copie de c.DAT_FINESSAI renommée en date_fin_essai.
+lh_silver.carriere.ft_mouvement_agent;date_fin_renouvellement;AGTCTR;DAT_FINRENOUV;Renommage;Date fin renouvellement (repris tel quel d'Astra).;Copie de c.DAT_FINRENOUV renommée en date_fin_renouvellement.
+lh_silver.carriere.ft_mouvement_agent;date_preavis;AGTCTR;DAT_PREAVIS;Renommage;Date préavis (repris tel quel d'Astra).;Copie de c.DAT_PREAVIS renommée en date_preavis.
+lh_silver.carriere.ft_mouvement_agent;commentaire;AGTCTR;COM;Renommage;Commentaire (repris tel quel d'Astra).;Copie de c.COM renommée en commentaire.
+lh_silver.carriere.ft_mouvement_agent;code_motif_contrat;AGTCTR;COD_MOTIF_CONTRAT;Renommage;Code motif contrat (repris tel quel d'Astra).;Copie de c.COD_MOTIF_CONTRAT renommée en code_motif_contrat.
+lh_silver.carriere.ft_mouvement_agent;code_categorie_statutaire;AGTCTR;COD_STAT_CATEG;Renommage;Code catégorie statutaire (repris tel quel d'Astra).;Copie de c.COD_STAT_CATEG renommée en code_categorie_statutaire.
+lh_silver.carriere.ft_mouvement_agent;date_convention;AGTCTR;DATE_CONVENTION;Renommage;Date convention (repris tel quel d'Astra).;Copie de c.DATE_CONVENTION renommée en date_convention.
+lh_silver.carriere.ft_mouvement_agent;reference_convention;AGTCTR;REF_CONVENTION;Renommage;Référence convention (repris tel quel d'Astra).;Copie de c.REF_CONVENTION renommée en reference_convention.
+lh_silver.carriere.ft_mouvement_agent;date_notification_rupture;AGTCTR;DATE_NOTIF_RUPTURE;Renommage;Date notification rupture (repris tel quel d'Astra).;Copie de c.DATE_NOTIF_RUPTURE renommée en date_notification_rupture.
+lh_silver.carriere.ft_mouvement_agent;code_motif_rupture;AGTCTR;CODE_MOTIF_RUPTURE;Renommage;Code motif rupture (repris tel quel d'Astra).;Copie de c.CODE_MOTIF_RUPTURE renommée en code_motif_rupture.
+lh_silver.carriere.ft_mouvement_agent;indicateur_clause_concurrence;AGTCTR;IND_CONCURRENCE;Renommage;Indicateur clause concurrence (repris tel quel d'Astra).;Copie de c.IND_CONCURRENCE renommée en indicateur_clause_concurrence.
+lh_silver.carriere.ft_mouvement_agent;date_dernier_jour;AGTCTR;DAT_DER_JOUR;Renommage;Date dernier jour (repris tel quel d'Astra).;Copie de c.DAT_DER_JOUR renommée en date_dernier_jour.
+lh_silver.carriere.ft_mouvement_agent;date_debut_procedure;AGTCTR;DAT_DEB_PROC;Renommage;Date début procedure (repris tel quel d'Astra).;Copie de c.DAT_DEB_PROC renommée en date_debut_procedure.
+lh_silver.carriere.ft_mouvement_agent;nombre_conges_payes;AGTCTR;NB_CP;Renommage;Nombre conges payes (repris tel quel d'Astra).;Copie de c.NB_CP renommée en nombre_conges_payes.
+lh_silver.carriere.ft_mouvement_agent;nombre_heures_dif;AGTCTR;NB_HH_DIF;Renommage;Nombre heures DIF (repris tel quel d'Astra).;Copie de c.NB_HH_DIF renommée en nombre_heures_dif.
+lh_silver.carriere.ft_mouvement_agent;type_preavis;AGTCTR;TYPE_PREAVIS;Renommage;Type préavis (repris tel quel d'Astra).;Copie de c.TYPE_PREAVIS renommée en type_preavis.
+lh_silver.carriere.ft_mouvement_agent;date_debut_preavis;AGTCTR;DATE_DEB_PREAVIS;Renommage;Date début préavis (repris tel quel d'Astra).;Copie de c.DATE_DEB_PREAVIS renommée en date_debut_preavis.
+lh_silver.carriere.ft_mouvement_agent;date_fin_preavis;AGTCTR;DATE_FIN_PREAVIS;Renommage;Date fin préavis (repris tel quel d'Astra).;Copie de c.DATE_FIN_PREAVIS renommée en date_fin_preavis.
+lh_silver.carriere.ft_mouvement_agent;etat_dnac;AGTCTR;ETAT_DNAC;Renommage;État DNAC (repris tel quel d'Astra).;Copie de c.ETAT_DNAC renommée en etat_dnac.
+lh_silver.carriere.ft_mouvement_agent;date_signature_convention_rupture;AGTCTR;DATE_SIGN_CONV_RUPT;Renommage;Date signature convention rupture (repris tel quel d'Astra).;Copie de c.DATE_SIGN_CONV_RUPT renommée en date_signature_convention_rupture.
+lh_silver.carriere.ft_mouvement_agent;lot_dnac;AGTCTR;LOT_DNAC;Renommage;Lot DNAC (repris tel quel d'Astra).;Copie de c.LOT_DNAC renommée en lot_dnac.
+lh_silver.carriere.ft_mouvement_agent;date_generation_dnac;AGTCTR;DATE_GEN_DNAC;Renommage;Date génération DNAC (repris tel quel d'Astra).;Copie de c.DATE_GEN_DNAC renommée en date_generation_dnac.
+lh_silver.carriere.ft_mouvement_agent;indicateur_contrat_court_pas;AGTCTR;CTR_COURTPAS;Renommage;Indicateur contrat court pas (repris tel quel d'Astra).;Copie de c.CTR_COURTPAS renommée en indicateur_contrat_court_pas.
+lh_silver.carriere.ft_mouvement_agent;date_cdi;AGTCTR;DATE_CDI;Renommage;Date CDI (repris tel quel d'Astra).;Copie de c.DATE_CDI renommée en date_cdi.
+lh_silver.carriere.ft_mouvement_agent;date_prevenance;AGTCTR;DAT_PREVENANCE;Renommage;Date prévenance (repris tel quel d'Astra).;Copie de c.DAT_PREVENANCE renommée en date_prevenance.
+lh_silver.carriere.ft_mouvement_agent;indicateur_circuit_derogatoire;AGTCTR;IND_CIRCUIT_DEROGATOIRE;Renommage;Indicateur circuit dérogatoire (repris tel quel d'Astra).;Copie de c.IND_CIRCUIT_DEROGATOIRE renommée en indicateur_circuit_derogatoire.
+lh_silver.carriere.ft_mouvement_agent;code_population_dsn;AGTCTR;COD_DSNPOPULATION;Renommage;Code population DSN (repris tel quel d'Astra).;Copie de c.COD_DSNPOPULATION renommée en code_population_dsn.
+lh_silver.carriere.ft_mouvement_agent;code_statut_convention_dsn;AGTCTR;COD_STAT_CONV_DSN;Renommage;Code statut convention DSN (repris tel quel d'Astra).;Copie de c.COD_STAT_CONV_DSN renommée en code_statut_convention_dsn.
+lh_silver.carriere.ft_mouvement_agent;code_suspension_dsn;AGTCTR;COD_SUSPENSION_DSN;Renommage;Code suspension DSN (repris tel quel d'Astra).;Copie de c.COD_SUSPENSION_DSN renommée en code_suspension_dsn.
+lh_silver.carriere.ft_mouvement_agent;code_motif_rupture_dsn;AGTCTR;CODE_MOTIF_RUPTURE_DSN;Renommage;Code motif rupture DSN (repris tel quel d'Astra).;Copie de c.CODE_MOTIF_RUPTURE_DSN renommée en code_motif_rupture_dsn.
+lh_silver.carriere.ft_mouvement_agent;etat_dsn;AGTCTR;ETAT_DSN;Renommage;État DSN (repris tel quel d'Astra).;Copie de c.ETAT_DSN renommée en etat_dsn.
+lh_silver.carriere.ft_mouvement_agent;identifiant_extraction;AGTCTR;ID_EXTRACT;Renommage;Identifiant extraction (repris tel quel d'Astra).;Copie de c.ID_EXTRACT renommée en identifiant_extraction.
+lh_silver.carriere.ft_mouvement_agent;date_generation_dsn;AGTCTR;DATE_GEN_DSN;Renommage;Date génération DSN (repris tel quel d'Astra).;Copie de c.DATE_GEN_DSN renommée en date_generation_dsn.
+lh_silver.carriere.ft_mouvement_agent;mois_reference;AGTCTR;MOIS_M;Renommage;Mois référence (repris tel quel d'Astra).;Copie de c.MOIS_M renommée en mois_reference.
+lh_silver.carriere.ft_mouvement_agent;blocage_prime_precarite;AGTCTR;BLOCAGE_PRECARITE;Renommage;Blocage prime précarité (repris tel quel d'Astra).;Copie de c.BLOCAGE_PRECARITE renommée en blocage_prime_precarite.
+lh_silver.carriere.ft_mouvement_agent;niveau_diplome_prepare;AGTCTR;NIV_DIPLOME_PREP;Renommage;Niveau diplôme préparé (repris tel quel d'Astra).;Copie de c.NIV_DIPLOME_PREP renommée en niveau_diplome_prepare.
+lh_silver.carriere.ft_mouvement_agent;identifiant_maitre_apprentissage;AGTCTR;MAITRE_ID;Renommage;Identifiant maitre apprentissage (repris tel quel d'Astra).;Copie de c.MAITRE_ID renommée en identifiant_maitre_apprentissage.
+lh_silver.carriere.ft_mouvement_agent;matricule_maitre_apprentissage;AGTCTR;MAITRE_MAT;Renommage;Matricule maitre apprentissage (repris tel quel d'Astra).;Copie de c.MAITRE_MAT renommée en matricule_maitre_apprentissage.
+lh_silver.carriere.ft_mouvement_agent;code_collectivite_maitre_apprentissage;AGTCTR;MAITRE_COD_COLL;Renommage;Code collectivité maitre apprentissage (repris tel quel d'Astra).;Copie de c.MAITRE_COD_COLL renommée en code_collectivite_maitre_apprentissage.
+lh_silver.carriere.ft_mouvement_agent;lot_dsn;AGTCTR;LOT_DSN;Renommage;Lot DSN (repris tel quel d'Astra).;Copie de c.LOT_DSN renommée en lot_dsn.
+lh_silver.carriere.ft_mouvement_agent;niveau_formation_eleve_dsn;AGTCTR;NIV_FORM_ELEVE_DSN;Renommage;Niveau formation élève DSN (repris tel quel d'Astra).;Copie de c.NIV_FORM_ELEVE_DSN renommée en niveau_formation_eleve_dsn.
+lh_silver.carriere.ft_mouvement_agent;indicateur_refus_cdi;AGTCTR;IND_REFUS_CDI;Renommage;Indicateur refus CDI (repris tel quel d'Astra).;Copie de c.IND_REFUS_CDI renommée en indicateur_refus_cdi.
+lh_silver.carriere.ft_mouvement_agent;indicateur_saisie_manuelle_essai;AGTCTR;IND_MANUEL_ESSAI;Renommage;Indicateur saisie manuelle essai (repris tel quel d'Astra).;Copie de c.IND_MANUEL_ESSAI renommée en indicateur_saisie_manuelle_essai.
+lh_silver.carriere.ft_mouvement_agent;indicateur_saisie_manuelle_renouvellement;AGTCTR;IND_MANUEL_RENOUV;Renommage;Indicateur saisie manuelle renouvellement (repris tel quel d'Astra).;Copie de c.IND_MANUEL_RENOUV renommée en indicateur_saisie_manuelle_renouvellement.
+lh_silver.carriere.ft_mouvement_agent;date_debut_validite;AGTCTR;DAT_DEBUT;Conversion de type;Début de la période de validité de la ligne.;CAST(c.DAT_DEBUT AS date)
+lh_silver.carriere.ft_mouvement_agent;date_fin_validite;AGTCTR;DAT_FIN;Date de fin par défaut;"Fin de la période de validité ; 31/12/2099 quand la période est toujours en cours.";CAST(COALESCE(c.DAT_FIN, '2099-12-31') AS date)
+lh_silver.carriere.ft_handicap_agent;hash_key;HANAGT;IDF_AGENT, IDENT_ID, DAT_DEBUT;Clé technique (hash);Identifiant technique unique de la reconnaissance (agent + identité + date de début).;Cast(SHA2(CONCAT(c.IDF_AGENT, '|', c.IDENT_ID, '|', Cast(c.DAT_DEBUT AS CHAR(10))), 256) AS VARCHAR(64)) — sans COD_COLL, contrairement aux autres tables.
+lh_silver.carriere.ft_handicap_agent;code_organisme;HANAGT;COD_COLL;Renommage;Code organisme (repris tel quel d'Astra).;Copie de COD_COLL renommée en code_organisme.
+lh_silver.carriere.ft_handicap_agent;matricule_agent;HANAGT;IDF_AGENT;Conversion de type;Matricule de l'agent.;CAST(IDF_AGENT AS INT) — texte partout ailleurs : jointure avec dim_agent à vérifier.
+lh_silver.carriere.ft_handicap_agent;identifiant_cle_agent;HANAGT;IDF_CLE;Renommage;Identifiant clé agent (repris tel quel d'Astra).;Copie de IDF_CLE renommée en identifiant_cle_agent.
+lh_silver.carriere.ft_handicap_agent;ident_id;HANAGT;IDENT_ID;Renommage;Ident ID (repris tel quel d'Astra).;Copie de IDENT_ID renommée en ident_id.
+lh_silver.carriere.ft_handicap_agent;code_handicap;HANAGT;COD_HANDIC;Renommage;Code handicap (repris tel quel d'Astra).;Copie de COD_HANDIC renommée en code_handicap.
+lh_silver.carriere.ft_handicap_agent;code_orientation_cotorep;HANAGT;COD_ORCOTOR;Renommage;Code orientation cotorep (repris tel quel d'Astra).;Copie de COD_ORCOTOR renommée en code_orientation_cotorep.
+lh_silver.carriere.ft_handicap_agent;code_nature_handicap_cotorep;HANAGT;COD_HANCOTOR;Renommage;Code nature handicap cotorep (repris tel quel d'Astra).;Copie de COD_HANCOTOR renommée en code_nature_handicap_cotorep.
+lh_silver.carriere.ft_handicap_agent;duree_handicap_annees;HANAGT;DUR_HAND_AA;Renommage;Durée handicap années (repris tel quel d'Astra).;Copie de DUR_HAND_AA renommée en duree_handicap_annees.
+lh_silver.carriere.ft_handicap_agent;duree_handicap_mois;HANAGT;DUR_HAND_MM;Renommage;Durée handicap mois (repris tel quel d'Astra).;Copie de DUR_HAND_MM renommée en duree_handicap_mois.
+lh_silver.carriere.ft_handicap_agent;taux_invalidite;HANAGT;TAU_INVAL;Renommage;Taux invalidite (repris tel quel d'Astra).;Copie de TAU_INVAL renommée en taux_invalidite.
+lh_silver.carriere.ft_handicap_agent;taux_de_capacite_de_travail;HANAGT;TAU_CAPTRA;Renommage;Taux de capacite de travail (repris tel quel d'Astra).;Copie de TAU_CAPTRA renommée en taux_de_capacite_de_travail.
+lh_silver.carriere.ft_handicap_agent;date_decision_cotorep;HANAGT;DATE_COTOREP;Renommage;Date décision cotorep (repris tel quel d'Astra).;Copie de DATE_COTOREP renommée en date_decision_cotorep.
+lh_silver.carriere.ft_handicap_agent;commentaire;HANAGT;COMMENTAIRE;Renommage;Commentaire (repris tel quel d'Astra).;Copie de COMMENTAIRE renommée en commentaire.
+lh_silver.carriere.ft_handicap_agent;a_renouveler;HANAGT;ARENOUV;Renommage;À renouveler (repris tel quel d'Astra).;Copie de ARENOUV renommée en a_renouveler.
+lh_silver.carriere.ft_handicap_agent;indicateur_mobilite_reduite;HANAGT;IND_MOB_REDUITE;Renommage;Indicateur mobilite reduite (repris tel quel d'Astra).;Copie de IND_MOB_REDUITE renommée en indicateur_mobilite_reduite.
+lh_silver.carriere.ft_handicap_agent;date_debut_validite;HANAGT;DAT_DEBUT;Conversion de type;Début de la période de reconnaissance.;Cast(c.DAT_DEBUT AS DATE)
+lh_silver.carriere.ft_handicap_agent;date_fin_validite;HANAGT;DAT_FIN;Conversion de type;"Fin de la période de reconnaissance ; vide si toujours en cours (pas de 31/12/2099 ici).";CAST(DAT_FIN AS DATE), sans COALESCE vers 2099-12-31.
